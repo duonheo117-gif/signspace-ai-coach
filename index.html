@@ -693,140 +693,130 @@ var GESTURES = {
   hello: {
     name: 'Hello',
     emoji: '👋',
-    hint: 'Wave your open hand. All 5 fingers fully extended, palm facing forward.',
-    // All fingers straight, thumb spread out
+    hint: 'Open your hand wide and wave! All 5 fingers pointing up, palm facing the camera.',
     template: [0.85, 0.95, 0.95, 0.95, 0.95, 0.80],
     checks: {
-      index:  { min: 0.75, msg: 'Extend your index finger fully' },
-      middle: { min: 0.75, msg: 'Middle finger needs to be more straight' },
-      ring:   { min: 0.70, msg: 'Ring finger should be extended' },
-      pinky:  { min: 0.70, msg: 'Extend your pinky finger too' }
+      index:  { min: 0.75, msg: 'Straighten your index finger all the way up' },
+      middle: { min: 0.75, msg: 'Middle finger needs to point straight up' },
+      ring:   { min: 0.70, msg: 'Ring finger should be fully open' },
+      pinky:  { min: 0.70, msg: 'Pinky finger needs to be extended too' }
     }
   },
 
   thankyou: {
     name: 'Thank You',
     emoji: '🙏',
-    hint: 'Touch your chin with flat fingers, then move hand forward. Keep fingers together pointing up.',
-    // All fingers straight, together
+    hint: 'Hold your flat hand near your chin, fingers pointing up. Move it forward gently — like blowing a kiss of thanks!',
     template: [0.80, 0.90, 0.90, 0.88, 0.85, 0.40],
     checks: {
-      index:  { min: 0.72, msg: 'Flatten your fingers — index should be straight' },
+      index:  { min: 0.72, msg: 'Keep all fingers flat and straight' },
       middle: { min: 0.72, msg: 'Middle finger should point upward' },
-      thumb:  { max: 0.60, msg: 'Keep thumb closer to palm (flat hand)' }
+      thumb:  { max: 0.60, msg: 'Tuck your thumb alongside your hand' }
     }
   },
 
   sorry: {
     name: 'Sorry',
     emoji: '😔',
-    hint: 'Make a fist (A-shape), rub it in a circle over your chest.',
-    // All fingers curled, fist
+    hint: 'Make a fist and gently rub it in a circle on your chest — like you are rubbing away a mistake.',
     template: [0.25, 0.15, 0.15, 0.15, 0.15, 0.20],
     checks: {
-      index:  { max: 0.40, msg: 'Curl your index finger into a fist' },
-      middle: { max: 0.40, msg: 'Middle finger needs more curl' },
-      ring:   { max: 0.40, msg: 'Ring finger should be curled' },
-      pinky:  { max: 0.40, msg: 'Pinky finger should be curled too' }
+      index:  { max: 0.40, msg: 'Curl your index finger into your fist' },
+      middle: { max: 0.40, msg: 'Middle finger needs to curl in more' },
+      ring:   { max: 0.40, msg: 'Curl your ring finger too' },
+      pinky:  { max: 0.40, msg: 'Pinky finger needs to curl in as well' }
     }
   },
 
   yes: {
     name: 'Yes',
     emoji: '✅',
-    hint: 'Make a fist and nod it up and down (S-hand shape).',
-    // Fist — similar to sorry but thumb more wrapped
+    hint: 'Make a fist and nod it up and down — just like your hand is saying "yes" by nodding!',
     template: [0.20, 0.12, 0.12, 0.12, 0.12, 0.15],
     checks: {
-      index:  { max: 0.35, msg: 'Curl your fingers tighter into a fist' },
-      middle: { max: 0.35, msg: 'Middle finger needs more curl' },
-      thumb:  { max: 0.35, msg: 'Thumb should wrap over the fist' }
+      index:  { max: 0.35, msg: 'Close your fingers tighter into a fist' },
+      middle: { max: 0.35, msg: 'Middle finger needs to curl in more' },
+      thumb:  { max: 0.35, msg: 'Wrap your thumb over your fingers' }
     }
   },
 
   no: {
     name: 'No',
     emoji: '❌',
-    hint: 'Snap index and middle fingers together against thumb.',
-    // Index + middle extended, others curled, thumb out
+    hint: 'Hold up your index and middle fingers together, then tap them down to meet your thumb — like a beak saying "no no no!"',
     template: [0.70, 0.85, 0.80, 0.15, 0.15, 0.65],
     checks: {
-      index:  { min: 0.70, msg: 'Extend your index finger more' },
-      middle: { min: 0.65, msg: 'Middle finger should be extended' },
-      ring:   { max: 0.40, msg: 'Curl your ring finger down' },
-      pinky:  { max: 0.40, msg: 'Pinky should be curled' }
+      index:  { min: 0.70, msg: 'Point your index finger up more' },
+      middle: { min: 0.65, msg: 'Middle finger should be straight up too' },
+      ring:   { max: 0.40, msg: 'Fold your ring finger down' },
+      pinky:  { max: 0.40, msg: 'Tuck your pinky finger in' }
     }
   },
 
   help: {
     name: 'Help',
     emoji: '🆘',
-    hint: 'Place a thumbs-up (A-hand) on open palm and lift both hands up.',
-    // Thumb extended up, fingers curled — thumbs-up
+    hint: 'Make a thumbs-up, then place it on your other open palm and lift both hands up together — like someone is giving you a boost!',
     template: [0.90, 0.15, 0.15, 0.15, 0.15, 0.50],
     checks: {
-      thumb:  { min: 0.72, msg: 'Raise your thumb more — thumbs up!' },
+      thumb:  { min: 0.72, msg: 'Point your thumb up higher' },
       index:  { max: 0.40, msg: 'Curl your index finger down' },
-      middle: { max: 0.40, msg: 'Middle finger should be curled' },
-      ring:   { max: 0.40, msg: 'Ring finger needs to be curled' }
+      middle: { max: 0.40, msg: 'Middle finger should be curled in' },
+      ring:   { max: 0.40, msg: 'Keep your ring finger curled down' }
     }
   },
 
   please: {
     name: 'Please',
     emoji: '🤲',
-    hint: 'Rub open palm flat on your chest in a circle. All fingers together.',
-    // Flat hand like B — but fingers more relaxed/together
+    hint: 'Put your flat open hand on your chest and rub in a circle — like you are politely asking for something.',
     template: [0.75, 0.88, 0.88, 0.88, 0.85, 0.35],
     checks: {
-      index:  { min: 0.70, msg: 'Keep fingers flat and extended' },
+      index:  { min: 0.70, msg: 'Flatten and straighten your fingers' },
       middle: { min: 0.70, msg: 'Middle finger should be straight' },
-      thumb:  { max: 0.55, msg: 'Tuck thumb closer alongside palm' }
+      thumb:  { max: 0.55, msg: 'Keep your thumb resting alongside your hand' }
     }
   },
 
   love: {
     name: 'Love',
     emoji: '❤️',
-    hint: 'Cross your arms over your chest (ILY: extend thumb, index, pinky).',
-    // Thumb + index + pinky extended, middle + ring curled
+    hint: 'Stick out your thumb, index finger, and pinky — fold middle and ring fingers down. It spells I-L-Y: I Love You!',
     template: [0.88, 0.90, 0.12, 0.12, 0.88, 0.75],
     checks: {
-      thumb:  { min: 0.72, msg: 'Extend your thumb outward' },
-      index:  { min: 0.72, msg: 'Index finger should be straight' },
-      middle: { max: 0.40, msg: 'Curl your middle finger down' },
-      ring:   { max: 0.40, msg: 'Ring finger should be curled' },
-      pinky:  { min: 0.72, msg: 'Pinky finger should be extended' }
+      thumb:  { min: 0.72, msg: 'Stick your thumb out to the side' },
+      index:  { min: 0.72, msg: 'Point your index finger straight up' },
+      middle: { max: 0.40, msg: 'Fold your middle finger down' },
+      ring:   { max: 0.40, msg: 'Fold your ring finger down too' },
+      pinky:  { min: 0.72, msg: 'Pinky finger should be pointing up' }
     }
   },
 
   good: {
     name: 'Good',
     emoji: '👍',
-    hint: 'Thumbs up — thumb straight up, all other fingers curled.',
-    // Thumb extended, all others curled
+    hint: 'Make a thumbs-up! All fingers curl into your palm, thumb points straight up. You already know this one!',
     template: [0.92, 0.12, 0.12, 0.12, 0.12, 0.55],
     checks: {
-      thumb:  { min: 0.75, msg: 'Raise thumb higher — make a clear thumbs-up' },
-      index:  { max: 0.38, msg: 'Curl your index finger down' },
-      middle: { max: 0.38, msg: 'Middle finger should be curled' },
-      ring:   { max: 0.38, msg: 'Ring finger should be curled' },
-      pinky:  { max: 0.38, msg: 'Pinky should be curled too' }
+      thumb:  { min: 0.75, msg: 'Point your thumb straight up higher' },
+      index:  { max: 0.38, msg: 'Curl your index finger into your palm' },
+      middle: { max: 0.38, msg: 'Middle finger needs to curl down' },
+      ring:   { max: 0.38, msg: 'Ring finger should be curled in' },
+      pinky:  { max: 0.38, msg: 'Pinky needs to curl in too' }
     }
   },
 
   stop: {
     name: 'Stop',
     emoji: '✋',
-    hint: 'Hold flat open palm facing forward — like a traffic stop signal.',
-    // All fingers straight and spread
+    hint: 'Hold your hand up flat like a crossing guard stopping traffic — fingers together, palm facing the camera.',
     template: [0.82, 0.95, 0.95, 0.92, 0.90, 0.75],
     checks: {
-      index:  { min: 0.78, msg: 'Extend index finger fully' },
-      middle: { min: 0.78, msg: 'Straighten your middle finger' },
-      ring:   { min: 0.72, msg: 'Ring finger needs to be extended' },
-      pinky:  { min: 0.70, msg: 'Extend your pinky outward' },
-      thumb:  { min: 0.68, msg: 'Spread thumb away from palm' }
+      index:  { min: 0.78, msg: 'Straighten your index finger fully' },
+      middle: { min: 0.78, msg: 'Middle finger needs to be fully straight' },
+      ring:   { min: 0.72, msg: 'Ring finger should be extended out' },
+      pinky:  { min: 0.70, msg: 'Pinky finger needs to be straight too' },
+      thumb:  { min: 0.68, msg: 'Spread your thumb slightly away from your palm' }
     }
   }
 };
