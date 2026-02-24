@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SignSpace AI Coach</title>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<!-- MediaPipe Hands (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<style>
+/* ────────────────────────────────────────────────
+   DESIGN: Dark industrial terminal meets
+   soft biometric — monospace data readouts,
+   warm amber accents, clinical green confirmations.
+   Unique, functional, memorable.
+──────────────────────────────────────────────── */
+
+:root {
+  --bg:        #0a0a0c;
+  --panel:     #111116;
+  --border:    #1e1e28;
+  --border2:   #2a2a38;
+  --amber:     #f0a030;
+  --amber-dim: #7a5018;
+  --green:     #28e87a;
+  --green-dim: #0e4028;
+  --red:       #e84040;
+  --red-dim:   #4a1010;
+  --blue:      #4090ff;
+  --muted:     #48485a;
+  --text:      #d8d4c8;
+  --text2:     #7a7880;
+  --mono:      'DM Mono', monospace;
+  --display:   'Syne', sans-serif;
+  --radius:    4px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--mono);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+#logo {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+#logo-name {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: #fff;
+}
+#logo-tag {
+  font-size: .68rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--amber);
+  font-weight: 500;
+}
+
+.header-mid {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Dropdown */
+.ctrl-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ctrl-label {
+  font-size: .58rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+select {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: .80rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  outline: none;
+  min-width: 140px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2348485a'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+select:focus { border-color: var(--amber-dim); }
+select option { background: #1a1a22; }
+
+/* Status pill */
+#status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  font-size: .72rem;
+  color: var(--muted);
+  letter-spacing: .08em;
+}
+#status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background .3s;
+}
+#status-pill.active #status-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+#status-pill.active { color: var(--green); border-color: var(--green-dim); }
+
+/* Start button */
+#btn-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 18px;
+  background: transparent;
+  border: 1.5px solid var(--amber);
+  border-radius: var(--radius);
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: .78rem;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+#btn-start:hover { background: var(--amber); color: #000; }
+#btn-start svg { width: 14px; height: 14px; }
+
+/* ── Main layout ── */
+#main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* ── Left panel — camera ── */
+#cam-panel {
+  position: relative;
+  background: #060608;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+#cam-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+}
+#cam-idle svg { opacity: .3; }
+#cam-idle p { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+
+#canvas-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+#canvas-container.visible { display: block; }
+
+/* Video hidden, canvas on top */
+#video {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+#output-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+/* Gesture name overlay */
+#gesture-overlay {
+  position: absolute;
+  top: 16px; left: 16px;
+  background: rgba(0,0,0,.7);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-size: .70rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  backdrop-filter: blur(4px);
+}
+#gesture-overlay span { color: var(--amber); font-weight: 500; }
+
+/* Score ring overlay */
+#score-overlay {
+  position: absolute;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0,0,0,.75);
+  border: 1px solid var(--border2);
+  border-radius: 30px;
+  padding: 6px 18px;
+  backdrop-filter: blur(4px);
+  transition: opacity .3s;
+  opacity: 0;
+}
+#score-overlay.show { opacity: 1; }
+#score-num {
+  font-size: 1.2rem;
+  font-weight: 500;
+  font-family: var(--display);
+}
+#score-label { font-size: .65rem; letter-spacing: .10em; text-transform: uppercase; color: var(--text2); }
+
+/* ── Right panel — feedback ── */
+#feedback-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+/* Target gesture card */
+#target-card {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#target-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+#target-title {
+  font-size: .60rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+#target-name {
+  font-family: var(--display);
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+#target-emoji {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+#target-hint {
+  font-size: .72rem;
+  color: var(--text2);
+  line-height: 1.55;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border-left: 2px solid var(--amber-dim);
+}
+
+/* Similarity bar */
+#similarity-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#sim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+#sim-label { font-size: .60rem; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
+#sim-pct {
+  font-size: 1.4rem;
+  font-family: var(--display);
+  font-weight: 700;
+  color: var(--text2);
+  transition: color .3s;
+}
+#sim-pct.good { color: var(--green); }
+#sim-pct.close { color: var(--amber); }
+
+#sim-bar-track {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#sim-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  background: var(--muted);
+  transition: width .25s ease, background .3s;
+}
+#sim-bar-fill.good { background: var(--green); }
+#sim-bar-fill.close { background: var(--amber); }
+
+/* Finger analysis grid */
+#finger-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.finger-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: .68rem;
+}
+.finger-chip .fc-name {
+  color: var(--text2);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  flex: 1;
+}
+.finger-chip .fc-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+  transition: background .3s;
+}
+.finger-chip.ok .fc-dot { background: var(--green); }
+.finger-chip.warn .fc-dot { background: var(--amber); }
+.finger-chip.bad .fc-dot { background: var(--red); }
+.finger-chip .fc-val {
+  font-size: .62rem;
+  color: var(--muted);
+  min-width: 28px;
+  text-align: right;
+}
+
+/* AI feedback log */
+#feedback-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#feedback-log::-webkit-scrollbar { width: 4px; }
+#feedback-log::-webkit-scrollbar-track { background: transparent; }
+#feedback-log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.fb-entry {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border-left: 2px solid transparent;
+  animation: fbIn .25s ease;
+}
+@keyframes fbIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+.fb-entry.success {
+  background: var(--green-dim);
+  border-color: var(--green);
+}
+.fb-entry.warning {
+  background: rgba(240,160,48,.08);
+  border-color: var(--amber);
+}
+.fb-entry.info {
+  background: rgba(64,144,255,.06);
+  border-color: var(--blue);
+}
+.fb-icon { font-size: 1rem; flex-shrink: 0; line-height: 1.4; }
+.fb-text {
+  font-size: .72rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.fb-text strong { font-weight: 500; color: #fff; display: block; margin-bottom: 2px; }
+
+#fb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+  color: var(--muted);
+  font-size: .70rem;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  text-align: center;
+}
+#fb-empty svg { opacity: .25; }
+
+/* Voice toggle */
+#voice-row {
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+#voice-label { font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toggle {
+  position: relative;
+  width: 34px; height: 18px;
+  cursor: pointer;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border2);
+  border-radius: 9px;
+  transition: background .25s;
+}
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform .25s, background .25s;
+}
+.toggle input:checked + .toggle-slider { background: var(--amber-dim); }
+.toggle input:checked + .toggle-slider::after { transform: translateX(16px); background: var(--amber); }
+.toggle-text { font-size: .65rem; color: var(--text2); }
+
+/* Pulse animation on correct */
+@keyframes pulse-correct {
+  0%   { box-shadow: 0 0 0 0 rgba(40,232,122,.5); }
+  70%  { box-shadow: 0 0 0 20px rgba(40,232,122,0); }
+  100% { box-shadow: 0 0 0 0 rgba(40,232,122,0); }
+}
+.pulse-green { animation: pulse-correct .6s ease; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────── -->
+<div id="header">
+  <div id="logo">
+    <span id="logo-name">SignSpace</span>
+    <span id="logo-tag">AI Coach</span>
+  </div>
+
+  <div class="header-mid">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Gesture</span>
+      <select id="gesture-select" onchange="selectGesture(this.value)">
+        <option value="hello">👋 Hello</option>
+        <option value="thankyou">🙏 Thank You</option>
+        <option value="sorry">😔 Sorry</option>
+        <option value="yes">✅ Yes</option>
+        <option value="no">❌ No</option>
+        <option value="help">🆘 Help</option>
+        <option value="please">🤲 Please</option>
+        <option value="love">❤️ Love</option>
+        <option value="good">👍 Good</option>
+        <option value="stop">✋ Stop</option>
+      </select>
+    </div>
+
+    <div id="status-pill">
+      <div id="status-dot"></div>
+      <span id="status-text">Camera Off</span>
+    </div>
+  </div>
+
+  <button id="btn-start" onclick="startCamera()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <polygon points="10,8 16,12 10,16"/>
+    </svg>
+    Start Camera
+  </button>
+</div>
+
+<!-- ── Main ───────────────────────────────────── -->
+<div id="main">
+
+  <!-- Left: Camera feed -->
+  <div id="cam-panel">
+    <div id="cam-idle">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <rect x="2" y="7" width="15" height="13" rx="2"/>
+        <path d="M17 9l5-2v10l-5-2"/>
+      </svg>
+      <p>Press "Start Camera" to begin</p>
+    </div>
+
+    <div id="canvas-container">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="output-canvas"></canvas>
+    </div>
+
+    <div id="gesture-overlay">Tracking: <span id="overlay-gesture">Hello</span></div>
+    <div id="score-overlay">
+      <div>
+        <div id="score-num">—</div>
+        <div id="score-label">Similarity</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Feedback panel -->
+  <div id="feedback-panel">
+
+    <!-- Target gesture info -->
+    <div id="target-card">
+      <div id="target-header">
+        <span id="target-title">Current Target</span>
+        <span id="target-emoji">👋</span>
+      </div>
+      <div id="target-name">Hello</div>
+      <div id="target-hint" id="target-hint">Wave your open hand side to side. All fingers extended, palm facing forward.</div>
+    </div>
+
+    <!-- Similarity score -->
+    <div id="similarity-section">
+      <div id="sim-header">
+        <span id="sim-label">Match Score</span>
+        <span id="sim-pct">--%</span>
+      </div>
+      <div id="sim-bar-track">
+        <div id="sim-bar-fill"></div>
+      </div>
+    </div>
+
+    <!-- Finger state chips -->
+    <div id="finger-grid">
+      <div class="finger-chip" id="fc-thumb">
+        <div class="fc-dot"></div>
+        <span class="fc-name">Thumb</span>
+        <span class="fc-val" id="fv-thumb">--</span>
+      </div>
+      <div class="finger-chip" id="fc-index">
+        <div class="fc-dot"></div>
+        <span class="fc-name">Index</span>
+        <span class="fc-val" id="fv-index">--</span>
+      </div>
+      <div class="finger-chip" id="fc-middle">
+        <div class="fc-dot"></div>
+        <span class="fc-name">Middle</span>
+        <span class="fc-val" id="fv-middle">--</span>
+      </div>
+      <div class="finger-chip" id="fc-ring">
+        <div class="fc-dot"></div>
+        <span class="fc-name">Ring</span>
+        <span class="fc-val" id="fv-ring">--</span>
+      </div>
+      <div class="finger-chip" id="fc-pinky">
+        <div class="fc-dot"></div>
+        <span class="fc-name">Pinky</span>
+        <span class="fc-val" id="fv-pinky">--</span>
+      </div>
+      <div class="finger-chip" id="fc-wrist">
+        <div class="fc-dot"></div>
+        <span class="fc-name">Palm</span>
+        <span class="fc-val" id="fv-wrist">--</span>
+      </div>
+    </div>
+
+    <!-- AI feedback log -->
+    <div id="feedback-log">
+      <div id="fb-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <path d="M9 9h6M9 13h4"/>
+          <rect x="3" y="3" width="18" height="14" rx="2"/>
+          <path d="M3 21l3-4h15"/>
+        </svg>
+        <span>AI feedback will appear here</span>
+      </div>
+    </div>
+
+    <!-- Voice toggle -->
+    <div id="voice-row">
+      <span id="voice-label">Voice Feedback</span>
+      <div class="toggle-wrap">
+        <label class="toggle">
+          <input type="checkbox" id="voice-toggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-text" id="voice-status">On</span>
+      </div>
+    </div>
+
+  </div><!-- /feedback-panel -->
+</div><!-- /main -->
+
+<script>
+// ============================================================
+//  SignSpace AI Coach — MediaPipe Hands + Euclidean Gesture
+//  No backend, no framework, pure HTML/CSS/JS
+// ============================================================
+
+// ── Voice feedback (Web Speech API) ─────────────────────────
+var voiceEnabled = true;
+var isSpeaking   = false;
+var lastSpokenMsg = '';
+
+document.getElementById('voice-toggle').addEventListener('change', function() {
+  voiceEnabled = this.checked;
+  document.getElementById('voice-status').textContent = this.checked ? 'On' : 'Off';
+});
+
+function speak(text) {
+  if (!voiceEnabled || !window.speechSynthesis) return;
+  if (text === lastSpokenMsg && isSpeaking) return;
+  window.speechSynthesis.cancel();
+  lastSpokenMsg = text;
+  isSpeaking    = true;
+  var utt = new SpeechSynthesisUtterance(text);
+  utt.rate   = 0.95;
+  utt.pitch  = 1.0;
+  utt.volume = 0.85;
+  utt.onend  = function() { isSpeaking = false; };
+  setTimeout(function() { window.speechSynthesis.speak(utt); }, 50);
+}
+
+// ── Gesture database ─────────────────────────────────────────
+// Feature vector = [thumbCurl, indexCurl, middleCurl, ringCurl, pinkyCurl, thumbSpread]
+// Curl  = 1 means fully straight, 0 means fully curled
+// thumbSpread = lateral distance of thumb from palm
+//
+// These are reference vectors derived from actual ASL/common gestures.
+
+var GESTURES = {
+  hello: {
+    name: 'Hello',
+    emoji: '👋',
+    hint: 'Wave your open hand. All 5 fingers fully extended, palm facing forward.',
+    // All fingers straight, thumb spread out
+    template: [0.85, 0.95, 0.95, 0.95, 0.95, 0.80],
+    checks: {
+      index:  { min: 0.75, msg: 'Extend your index finger fully' },
+      middle: { min: 0.75, msg: 'Middle finger needs to be more straight' },
+      ring:   { min: 0.70, msg: 'Ring finger should be extended' },
+      pinky:  { min: 0.70, msg: 'Extend your pinky finger too' }
+    }
+  },
+
+  thankyou: {
+    name: 'Thank You',
+    emoji: '🙏',
+    hint: 'Touch your chin with flat fingers, then move hand forward. Keep fingers together pointing up.',
+    // All fingers straight, together
+    template: [0.80, 0.90, 0.90, 0.88, 0.85, 0.40],
+    checks: {
+      index:  { min: 0.72, msg: 'Flatten your fingers — index should be straight' },
+      middle: { min: 0.72, msg: 'Middle finger should point upward' },
+      thumb:  { max: 0.60, msg: 'Keep thumb closer to palm (flat hand)' }
+    }
+  },
+
+  sorry: {
+    name: 'Sorry',
+    emoji: '😔',
+    hint: 'Make a fist (A-shape), rub it in a circle over your chest.',
+    // All fingers curled, fist
+    template: [0.25, 0.15, 0.15, 0.15, 0.15, 0.20],
+    checks: {
+      index:  { max: 0.40, msg: 'Curl your index finger into a fist' },
+      middle: { max: 0.40, msg: 'Middle finger needs more curl' },
+      ring:   { max: 0.40, msg: 'Ring finger should be curled' },
+      pinky:  { max: 0.40, msg: 'Pinky finger should be curled too' }
+    }
+  },
+
+  yes: {
+    name: 'Yes',
+    emoji: '✅',
+    hint: 'Make a fist and nod it up and down (S-hand shape).',
+    // Fist — similar to sorry but thumb more wrapped
+    template: [0.20, 0.12, 0.12, 0.12, 0.12, 0.15],
+    checks: {
+      index:  { max: 0.35, msg: 'Curl your fingers tighter into a fist' },
+      middle: { max: 0.35, msg: 'Middle finger needs more curl' },
+      thumb:  { max: 0.35, msg: 'Thumb should wrap over the fist' }
+    }
+  },
+
+  no: {
+    name: 'No',
+    emoji: '❌',
+    hint: 'Snap index and middle fingers together against thumb.',
+    // Index + middle extended, others curled, thumb out
+    template: [0.70, 0.85, 0.80, 0.15, 0.15, 0.65],
+    checks: {
+      index:  { min: 0.70, msg: 'Extend your index finger more' },
+      middle: { min: 0.65, msg: 'Middle finger should be extended' },
+      ring:   { max: 0.40, msg: 'Curl your ring finger down' },
+      pinky:  { max: 0.40, msg: 'Pinky should be curled' }
+    }
+  },
+
+  help: {
+    name: 'Help',
+    emoji: '🆘',
+    hint: 'Place a thumbs-up (A-hand) on open palm and lift both hands up.',
+    // Thumb extended up, fingers curled — thumbs-up
+    template: [0.90, 0.15, 0.15, 0.15, 0.15, 0.50],
+    checks: {
+      thumb:  { min: 0.72, msg: 'Raise your thumb more — thumbs up!' },
+      index:  { max: 0.40, msg: 'Curl your index finger down' },
+      middle: { max: 0.40, msg: 'Middle finger should be curled' },
+      ring:   { max: 0.40, msg: 'Ring finger needs to be curled' }
+    }
+  },
+
+  please: {
+    name: 'Please',
+    emoji: '🤲',
+    hint: 'Rub open palm flat on your chest in a circle. All fingers together.',
+    // Flat hand like B — but fingers more relaxed/together
+    template: [0.75, 0.88, 0.88, 0.88, 0.85, 0.35],
+    checks: {
+      index:  { min: 0.70, msg: 'Keep fingers flat and extended' },
+      middle: { min: 0.70, msg: 'Middle finger should be straight' },
+      thumb:  { max: 0.55, msg: 'Tuck thumb closer alongside palm' }
+    }
+  },
+
+  love: {
+    name: 'Love',
+    emoji: '❤️',
+    hint: 'Cross your arms over your chest (ILY: extend thumb, index, pinky).',
+    // Thumb + index + pinky extended, middle + ring curled
+    template: [0.88, 0.90, 0.12, 0.12, 0.88, 0.75],
+    checks: {
+      thumb:  { min: 0.72, msg: 'Extend your thumb outward' },
+      index:  { min: 0.72, msg: 'Index finger should be straight' },
+      middle: { max: 0.40, msg: 'Curl your middle finger down' },
+      ring:   { max: 0.40, msg: 'Ring finger should be curled' },
+      pinky:  { min: 0.72, msg: 'Pinky finger should be extended' }
+    }
+  },
+
+  good: {
+    name: 'Good',
+    emoji: '👍',
+    hint: 'Thumbs up — thumb straight up, all other fingers curled.',
+    // Thumb extended, all others curled
+    template: [0.92, 0.12, 0.12, 0.12, 0.12, 0.55],
+    checks: {
+      thumb:  { min: 0.75, msg: 'Raise thumb higher — make a clear thumbs-up' },
+      index:  { max: 0.38, msg: 'Curl your index finger down' },
+      middle: { max: 0.38, msg: 'Middle finger should be curled' },
+      ring:   { max: 0.38, msg: 'Ring finger should be curled' },
+      pinky:  { max: 0.38, msg: 'Pinky should be curled too' }
+    }
+  },
+
+  stop: {
+    name: 'Stop',
+    emoji: '✋',
+    hint: 'Hold flat open palm facing forward — like a traffic stop signal.',
+    // All fingers straight and spread
+    template: [0.82, 0.95, 0.95, 0.92, 0.90, 0.75],
+    checks: {
+      index:  { min: 0.78, msg: 'Extend index finger fully' },
+      middle: { min: 0.78, msg: 'Straighten your middle finger' },
+      ring:   { min: 0.72, msg: 'Ring finger needs to be extended' },
+      pinky:  { min: 0.70, msg: 'Extend your pinky outward' },
+      thumb:  { min: 0.68, msg: 'Spread thumb away from palm' }
+    }
+  }
+};
+
+// ── Current state ────────────────────────────────────────────
+var currentGesture = 'hello';
+var cameraRunning  = false;
+var lastFeedbackType = '';  // 'success'|'warning' — throttle speech
+var speechCooldown   = 0;
+
+// ── MediaPipe landmarks index constants ─────────────────────
+// Hand landmarks: 0=WRIST, 1-4=THUMB, 5-8=INDEX, 9-12=MIDDLE,
+// 13-16=RING, 17-20=PINKY
+var LM = {
+  WRIST:       0,
+  THUMB_CMC:   1, THUMB_MCP:  2, THUMB_IP:   3, THUMB_TIP:  4,
+  INDEX_MCP:   5, INDEX_PIP:  6, INDEX_DIP:  7, INDEX_TIP:  8,
+  MIDDLE_MCP:  9, MIDDLE_PIP:10, MIDDLE_DIP: 11,MIDDLE_TIP: 12,
+  RING_MCP:   13, RING_PIP:  14, RING_DIP:   15,RING_TIP:   16,
+  PINKY_MCP:  17, PINKY_PIP: 18, PINKY_DIP:  19,PINKY_TIP:  20
+};
+
+// ── Feature extraction ───────────────────────────────────────
+// Returns a 6-element vector: [thumbCurl, indexCurl, middleCurl, ringCurl, pinkyCurl, thumbSpread]
+// Each value normalized 0–1 (0 = fully curled, 1 = fully extended)
+
+function dist3D(a, b) {
+  var dx = a.x - b.x, dy = a.y - b.y, dz = (a.z||0) - (b.z||0);
+  return Math.sqrt(dx*dx + dy*dy + dz*dz);
+}
+
+function fingerCurl(lm, mcpIdx, pipIdx, tipIdx) {
+  // Curl = ratio of (tip-to-mcp distance) / (pip-to-mcp distance * 2)
+  // When straight: tip is far from MCP (high value ~1)
+  // When curled:   tip is close to MCP (low value ~0)
+  var mcp = lm[mcpIdx], pip = lm[pipIdx], tip = lm[tipIdx];
+  var wrist = lm[LM.WRIST];
+  // Normalise against palm size (wrist→middle-mcp distance)
+  var palmSize = dist3D(wrist, lm[LM.MIDDLE_MCP]);
+  if (palmSize < 0.001) return 0.5;
+  var tipDist = dist3D(tip, mcp);
+  // Straight: tipDist ≈ palmSize * 1.5-2.0; Curled: tipDist ≈ palmSize * 0.3-0.5
+  var norm = tipDist / (palmSize * 1.8);
+  return Math.min(1, Math.max(0, norm));
+}
+
+function thumbSpread(lm) {
+  // Lateral spread: distance from thumb tip to index MCP, normalised by palm size
+  var palmSize = dist3D(lm[LM.WRIST], lm[LM.MIDDLE_MCP]);
+  if (palmSize < 0.001) return 0.5;
+  var sp = dist3D(lm[LM.THUMB_TIP], lm[LM.INDEX_MCP]);
+  return Math.min(1, Math.max(0, sp / palmSize));
+}
+
+function extractFeatures(lm) {
+  return [
+    fingerCurl(lm, LM.THUMB_MCP,  LM.THUMB_IP,   LM.THUMB_TIP),
+    fingerCurl(lm, LM.INDEX_MCP,  LM.INDEX_PIP,  LM.INDEX_TIP),
+    fingerCurl(lm, LM.MIDDLE_MCP, LM.MIDDLE_PIP, LM.MIDDLE_TIP),
+    fingerCurl(lm, LM.RING_MCP,   LM.RING_PIP,   LM.RING_TIP),
+    fingerCurl(lm, LM.PINKY_MCP,  LM.PINKY_PIP,  LM.PINKY_TIP),
+    thumbSpread(lm)
+  ];
+}
+
+// ── Euclidean similarity ─────────────────────────────────────
+function similarity(featA, featB) {
+  var sumSq = 0;
+  for (var i = 0; i < featA.length; i++) {
+    var d = featA[i] - featB[i];
+    sumSq += d * d;
+  }
+  var dist = Math.sqrt(sumSq);
+  // Max possible distance in 6D unit cube is sqrt(6) ≈ 2.449
+  var maxDist = Math.sqrt(featA.length);
+  return Math.max(0, 1 - dist / maxDist);
+}
+
+// ── Gesture analysis + AI feedback ───────────────────────────
+function analyzeGesture(features, gestureName) {
+  var g = GESTURES[gestureName];
+  if (!g) return;
+
+  var score = similarity(features, g.template);
+  var pct   = Math.round(score * 100);
+
+  // Update score overlay
+  var scoreEl  = document.getElementById('score-num');
+  var overlay  = document.getElementById('score-overlay');
+  scoreEl.textContent = pct + '%';
+  overlay.classList.add('show');
+  scoreEl.style.color = pct >= 75 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
+
+  // Update similarity bar
+  var simPct  = document.getElementById('sim-pct');
+  var simFill = document.getElementById('sim-bar-fill');
+  simPct.textContent = pct + '%';
+  simFill.style.width = pct + '%';
+  simPct.className  = pct >= 75 ? 'good' : pct >= 50 ? 'close' : '';
+  simFill.className = pct >= 75 ? 'good' : pct >= 50 ? 'close' : '';
+
+  // Update finger chips
+  var names  = ['thumb','index','middle','ring','pinky','wrist'];
+  var labels = ['thumb','index','middle','ring','pinky'];
+  labels.forEach(function(n, i) {
+    var val  = features[i];
+    var chip = document.getElementById('fc-'+n);
+    var valEl= document.getElementById('fv-'+n);
+    if (!chip) return;
+    var v = Math.round(val * 100);
+    valEl.textContent = v + '%';
+    var chk = g.checks ? g.checks[n] : null;
+    chip.className = 'finger-chip';
+    if (chk) {
+      var ok = true;
+      if (chk.min !== undefined && val < chk.min) ok = false;
+      if (chk.max !== undefined && val > chk.max) ok = false;
+      chip.classList.add(ok ? 'ok' : (v > 30 ? 'warn' : 'bad'));
+    } else {
+      chip.classList.add('ok');
+    }
+  });
+
+  // Determine feedback + speech
+  var now = Date.now();
+  if (pct >= 80) {
+    // SUCCESS
+    if (lastFeedbackType !== 'success' || now - speechCooldown > 4000) {
+      addFeedback('success', '✓ ' + g.name + ' — ' + pct + '% match', 'Great job! Your hand shape matches perfectly.');
+      speak('Good job! ' + pct + ' percent match for ' + g.name + '.');
+      lastFeedbackType = 'success';
+      speechCooldown   = now;
+      // Pulse the score
+      var camPanel = document.getElementById('cam-panel');
+      camPanel.classList.remove('pulse-green');
+      void camPanel.offsetWidth;
+      camPanel.classList.add('pulse-green');
+    }
+  } else if (pct >= 55) {
+    // CLOSE — specific tip
+    if (now - speechCooldown > 3500) {
+      var tips = generateTips(features, g);
+      var tip  = tips.length > 0 ? tips[0] : 'Keep adjusting your hand position.';
+      addFeedback('warning', 'Almost — ' + pct + '%', tip);
+      speak(tip);
+      lastFeedbackType = 'warning';
+      speechCooldown   = now;
+    }
+  } else {
+    // NEED WORK
+    if (now - speechCooldown > 4500) {
+      var tips2 = generateTips(features, g);
+      if (tips2.length > 0) {
+        addFeedback('info', 'Adjust your hand — ' + pct + '%', tips2.slice(0,2).join(' '));
+        speak(tips2[0]);
+      }
+      lastFeedbackType = 'warning';
+      speechCooldown   = now;
+    }
+  }
+}
+
+// ── Generate specific correction tips ───────────────────────
+function generateTips(features, g) {
+  var tips = [];
+  if (!g.checks) return tips;
+  var featMap = { thumb:0, index:1, middle:2, ring:3, pinky:4 };
+  Object.keys(g.checks).forEach(function(finger) {
+    var chk = g.checks[finger];
+    var val = features[featMap[finger]];
+    if (val === undefined) return;
+    if (chk.min !== undefined && val < chk.min) {
+      tips.push(chk.msg);
+    }
+    if (chk.max !== undefined && val > chk.max) {
+      tips.push(chk.msg);
+    }
+  });
+  return tips;
+}
+
+// ── Feedback log ─────────────────────────────────────────────
+var feedbackCount = 0;
+
+function addFeedback(type, title, body) {
+  var log = document.getElementById('feedback-log');
+
+  // Remove empty state
+  var empty = document.getElementById('fb-empty');
+  if (empty) empty.remove();
+
+  // Cap at 6 entries
+  if (feedbackCount >= 6) {
+    var first = log.querySelector('.fb-entry');
+    if (first) first.remove();
+    feedbackCount--;
+  }
+
+  var icons = { success:'✓', warning:'⚠', info:'→' };
+  var div  = document.createElement('div');
+  div.className = 'fb-entry ' + type;
+  div.innerHTML = '<div class="fb-icon">' + icons[type] + '</div>'
+    + '<div class="fb-text"><strong>' + title + '</strong>' + body + '</div>';
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  feedbackCount++;
+}
+
+// ── UI helpers ───────────────────────────────────────────────
+function selectGesture(name) {
+  currentGesture = name;
+  var g = GESTURES[name];
+  if (!g) return;
+  document.getElementById('target-name').textContent   = g.name;
+  document.getElementById('target-emoji').textContent  = g.emoji;
+  document.getElementById('target-hint').textContent   = g.hint;
+  document.getElementById('overlay-gesture').textContent = g.name;
+  document.getElementById('select-gesture-header') && (document.getElementById('select-gesture-header').textContent = g.name);
+  // Reset feedback log
+  document.getElementById('feedback-log').innerHTML = '<div id="fb-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--muted);font-size:.70rem;letter-spacing:.10em;text-transform:uppercase;text-align:center"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M9 9h6M9 13h4"/><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M3 21l3-4h15"/></svg><span>AI feedback will appear here</span></div>';
+  feedbackCount = 0;
+  lastFeedbackType = '';
+  speechCooldown = 0;
+  // Reset chips
+  ['thumb','index','middle','ring','pinky'].forEach(function(n) {
+    var c = document.getElementById('fc-'+n);
+    if (c) c.className = 'finger-chip';
+    var v = document.getElementById('fv-'+n);
+    if (v) v.textContent = '--';
+  });
+  document.getElementById('sim-pct').textContent = '--%';
+  document.getElementById('sim-pct').className   = '';
+  document.getElementById('sim-bar-fill').style.width = '0%';
+  document.getElementById('sim-bar-fill').className   = '';
+  document.getElementById('score-num').textContent    = '—';
+  document.getElementById('score-overlay').classList.remove('show');
+}
+
+// ── MediaPipe Hands setup ────────────────────────────────────
+var hands, mpCamera;
+
+function startCamera() {
+  if (cameraRunning) return;
+
+  var videoEl  = document.getElementById('video');
+  var canvasEl = document.getElementById('output-canvas');
+  var ctx      = canvasEl.getContext('2d');
+
+  // Show canvas container
+  document.getElementById('cam-idle').style.display = 'none';
+  document.getElementById('canvas-container').classList.add('visible');
+
+  // Resize canvas to match container
+  function resizeCanvas() {
+    var wrap = document.getElementById('cam-panel');
+    canvasEl.width  = wrap.clientWidth;
+    canvasEl.height = wrap.clientHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Init MediaPipe Hands
+  hands = new Hands({
+    locateFile: function(file) {
+      return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + file;
+    }
+  });
+
+  hands.setOptions({
+    maxNumHands:          1,
+    modelComplexity:      1,
+    minDetectionConfidence:  0.7,
+    minTrackingConfidence:   0.6
+  });
+
+  hands.onResults(function(results) {
+    // Size canvas to video
+    var vw = videoEl.videoWidth  || canvasEl.width;
+    var vh = videoEl.videoHeight || canvasEl.height;
+    canvasEl.width  = canvasEl.offsetWidth;
+    canvasEl.height = canvasEl.offsetHeight;
+    var cw = canvasEl.width, ch = canvasEl.height;
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    // Mirror-draw video frame
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(results.image, -cw, 0, cw, ch);
+    ctx.restore();
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      var lm = results.multiHandLandmarks[0];
+
+      // Draw skeleton using MediaPipe drawing utils
+      drawConnectors(ctx, lm, HAND_CONNECTIONS, {
+        color: 'rgba(40,232,122,0.6)',
+        lineWidth: 2
+      });
+      drawLandmarks(ctx, lm, {
+        color: 'rgba(240,160,48,0.9)',
+        fillColor: 'rgba(240,160,48,0.4)',
+        lineWidth: 1,
+        radius: 4
+      });
+
+      // Extract features + analyze
+      var features = extractFeatures(lm);
+      analyzeGesture(features, currentGesture);
+
+    } else {
+      // No hand detected
+      // Draw subtle overlay
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.fillStyle = 'rgba(120,120,140,0.8)';
+      ctx.font = '13px DM Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('No hand detected — hold hand in frame', cw/2, ch/2);
+      document.getElementById('score-overlay').classList.remove('show');
+    }
+  });
+
+  // MediaPipe Camera
+  mpCamera = new Camera(videoEl, {
+    onFrame: async function() {
+      await hands.send({ image: videoEl });
+    },
+    width:  1280,
+    height: 720
+  });
+
+  mpCamera.start().then(function() {
+    cameraRunning = true;
+    var pill = document.getElementById('status-pill');
+    pill.classList.add('active');
+    document.getElementById('status-text').textContent = 'Camera Active';
+    var btn = document.getElementById('btn-start');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6"/></svg> Running';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color       = 'var(--green)';
+    btn.onclick = null; // disable re-click
+    addFeedback('info', 'Camera started', 'Position your hand in the frame and try the "' + GESTURES[currentGesture].name + '" gesture.');
+    speak('Camera started. Try the ' + GESTURES[currentGesture].name + ' gesture.');
+  }).catch(function(err) {
+    addFeedback('warning', 'Camera error', err.message || 'Could not access webcam. Check browser permissions.');
+  });
+}
+
+// ── Init ─────────────────────────────────────────────────────
+selectGesture('hello');
+</script>
+</body>
+</html>
