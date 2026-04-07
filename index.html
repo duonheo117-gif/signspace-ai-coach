@@ -1,1173 +1,1993 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SignSpace AI Coach</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bảo Tàng Cảm Xúc</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet" />
 
-<!-- Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* =============================================
+       ROOT VARIABLES & BASE
+    ============================================= */
+    :root {
+      --ivory: #f5f0e8;
+      --cream: #ede5d0;
+      --parchment: #d9cdb8;
+      --gold: #b8973e;
+      --gold-light: #d4ae5a;
+      --gold-pale: #e8d5a0;
+      --brown-deep: #2c1f0e;
+      --brown-mid: #4a3520;
+      --brown-warm: #6b4c2a;
+      --charcoal: #1a1510;
+      --wine: #4a1515;
+      --wine-light: #6b2020;
+      --shadow-soft: rgba(26, 15, 8, 0.25);
+      --shadow-deep: rgba(26, 15, 8, 0.55);
+      --frame-gold: #c9a84c;
+      --frame-dark: #8b6914;
+    }
 
-<!-- MediaPipe Hands (CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-<style>
-/* ────────────────────────────────────────────────
-   DESIGN: Dark industrial terminal meets
-   soft biometric — monospace data readouts,
-   warm amber accents, clinical green confirmations.
-   Unique, functional, memorable.
-──────────────────────────────────────────────── */
+    html { scroll-behavior: smooth; }
 
-:root {
-  --bg:        #0a0a0c;
-  --panel:     #111116;
-  --border:    #1e1e28;
-  --border2:   #2a2a38;
-  --amber:     #f0a030;
-  --amber-dim: #7a5018;
-  --green:     #28e87a;
-  --green-dim: #0e4028;
-  --red:       #e84040;
-  --red-dim:   #4a1010;
-  --blue:      #4090ff;
-  --muted:     #48485a;
-  --text:      #d8d4c8;
-  --text2:     #7a7880;
-  --mono:      'DM Mono', monospace;
-  --display:   'Syne', sans-serif;
-  --radius:    4px;
-}
+    body {
+      background-color: var(--charcoal);
+      color: var(--ivory);
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 18px;
+      line-height: 1.75;
+      overflow-x: hidden;
+    }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Noise texture overlay on body */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
+    }
 
-body {
-  font-family: var(--mono);
-  background: var(--bg);
-  color: var(--text);
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+    img { display: block; max-width: 100%; }
 
-/* ── Header ── */
-#header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--panel);
-  flex-shrink: 0;
-  gap: 16px;
-}
+    /* =============================================
+       TYPOGRAPHY
+    ============================================= */
+    h1, h2, h3 {
+      font-family: 'Cinzel', 'Times New Roman', serif;
+      letter-spacing: 0.04em;
+    }
 
-#logo {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-#logo-name {
-  font-family: var(--display);
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -.01em;
-  color: #fff;
-}
-#logo-tag {
-  font-size: .68rem;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--amber);
-  font-weight: 500;
-}
+    .room-number {
+      font-family: 'Cinzel', serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.25em;
+      color: var(--gold);
+      text-transform: uppercase;
+    }
 
-.header-mid {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
+    /* =============================================
+       ORNAMENTAL DIVIDERS
+    ============================================= */
+    .ornament {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      justify-content: center;
+      margin: 1.5rem auto;
+      color: var(--gold);
+    }
+    .ornament::before,
+    .ornament::after {
+      content: '';
+      flex: 1;
+      max-width: 120px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+    }
+    .ornament span {
+      font-size: 1.1rem;
+      opacity: 0.85;
+      letter-spacing: 0.1em;
+    }
 
-/* Dropdown */
-.ctrl-group {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.ctrl-label {
-  font-size: .58rem;
-  letter-spacing: .15em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-select {
-  background: var(--bg);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: .80rem;
-  padding: 6px 10px;
-  cursor: pointer;
-  outline: none;
-  min-width: 140px;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2348485a'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 28px;
-}
-select:focus { border-color: var(--amber-dim); }
-select option { background: #1a1a22; }
+    .section-divider {
+      width: 100%;
+      text-align: center;
+      position: relative;
+      height: 60px;
+      overflow: hidden;
+    }
+    .section-divider svg {
+      width: 100%;
+      height: 100%;
+    }
 
-/* Status pill */
-#status-pill {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--border2);
-  font-size: .72rem;
-  color: var(--muted);
-  letter-spacing: .08em;
-}
-#status-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--muted);
-  transition: background .3s;
-}
-#status-pill.active #status-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
-#status-pill.active { color: var(--green); border-color: var(--green-dim); }
+    /* =============================================
+       SCROLL REVEAL ANIMATION
+    ============================================= */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.9s ease, transform 0.9s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.15s; }
+    .reveal-delay-2 { transition-delay: 0.3s; }
+    .reveal-delay-3 { transition-delay: 0.45s; }
+    .reveal-delay-4 { transition-delay: 0.6s; }
 
-/* Start button */
-#btn-start {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 18px;
-  background: transparent;
-  border: 1.5px solid var(--amber);
-  border-radius: var(--radius);
-  color: var(--amber);
-  font-family: var(--mono);
-  font-size: .78rem;
-  letter-spacing: .10em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background .2s, color .2s;
-}
-#btn-start:hover { background: var(--amber); color: #000; }
-#btn-start svg { width: 14px; height: 14px; }
+    /* =============================================
+       NAVIGATION
+    ============================================= */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(to bottom, rgba(26,15,8,0.92) 0%, transparent 100%);
+      backdrop-filter: blur(2px);
+      transition: background 0.4s ease;
+    }
+    nav.scrolled {
+      background: rgba(26, 15, 8, 0.96);
+      border-bottom: 1px solid rgba(184, 151, 62, 0.2);
+    }
+    .nav-brand {
+      font-family: 'Cinzel', serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      color: var(--gold);
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+    .nav-links {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+    .nav-links a {
+      font-family: 'Cinzel', serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      color: var(--parchment);
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: color 0.3s ease;
+    }
+    .nav-links a:hover { color: var(--gold-light); }
 
-/* ── Main layout ── */
-#main {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 0;
-  overflow: hidden;
-}
+    /* =============================================
+       HERO SECTION
+    ============================================= */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow: hidden;
+      background: var(--charcoal);
+    }
 
-/* ── Left panel — camera ── */
-#cam-panel {
-  position: relative;
-  background: #060608;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-}
+    /* Museum hall background using CSS */
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 70% at 50% 20%, rgba(184,151,62,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(74,53,32,0.5) 0%, transparent 70%),
+        linear-gradient(180deg,
+          #0d0a07 0%,
+          #1a1208 15%,
+          #211508 30%,
+          #1a1208 60%,
+          #0d0a07 100%
+        );
+    }
 
-#cam-idle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  color: var(--muted);
-}
-#cam-idle svg { opacity: .3; }
-#cam-idle p { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+    /* Architectural columns hint */
+    .hero-columns {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .hero-col {
+      width: 60px;
+      background: linear-gradient(to right, rgba(184,151,62,0.04), transparent, rgba(184,151,62,0.04));
+      border-left: 1px solid rgba(184,151,62,0.07);
+      border-right: 1px solid rgba(184,151,62,0.07);
+    }
 
-#canvas-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: none;
-}
-#canvas-container.visible { display: block; }
+    /* Ceiling light beam */
+    .hero-light {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 100%;
+      background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(212,174,90,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
 
-/* Video hidden, canvas on top */
-#video {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-  display: none;
-}
-#output-canvas {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-}
+    /* Floor reflection */
+    .hero-floor {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 200px;
+      background: linear-gradient(to top, rgba(184,151,62,0.05), transparent);
+    }
 
-/* Gesture name overlay */
-#gesture-overlay {
-  position: absolute;
-  top: 16px; left: 16px;
-  background: rgba(0,0,0,.7);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  padding: 8px 14px;
-  font-size: .70rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  backdrop-filter: blur(4px);
-}
-#gesture-overlay span { color: var(--amber); font-weight: 500; }
+    /* Large decorative frame hint in hero */
+    .hero-frame-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(700px, 90vw);
+      height: min(420px, 60vh);
+      border: 1px solid rgba(184,151,62,0.1);
+      box-shadow:
+        0 0 0 8px rgba(184,151,62,0.04),
+        0 0 0 16px rgba(184,151,62,0.025),
+        inset 0 0 80px rgba(0,0,0,0.3);
+      pointer-events: none;
+    }
+    .hero-frame-hint::before,
+    .hero-frame-hint::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(184,151,62,0.07);
+    }
 
-/* Score ring overlay */
-#score-overlay {
-  position: absolute;
-  bottom: 16px; left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(0,0,0,.75);
-  border: 1px solid var(--border2);
-  border-radius: 30px;
-  padding: 6px 18px;
-  backdrop-filter: blur(4px);
-  transition: opacity .3s;
-  opacity: 0;
-}
-#score-overlay.show { opacity: 1; }
-#score-num {
-  font-size: 1.2rem;
-  font-weight: 500;
-  font-family: var(--display);
-}
-#score-label { font-size: .65rem; letter-spacing: .10em; text-transform: uppercase; color: var(--text2); }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 2rem;
+      max-width: 760px;
+    }
 
-/* ── Right panel — feedback ── */
-#feedback-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--panel);
-}
+    .hero-eyebrow {
+      font-family: 'Cinzel', serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.4em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '◆';
+      font-size: 0.5rem;
+      opacity: 0.7;
+    }
 
-/* Target gesture card */
-#target-card {
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-#target-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-#target-title {
-  font-size: .60rem;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
+    .hero-title {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(2.8rem, 8vw, 6rem);
+      font-weight: 500;
+      line-height: 1.05;
+      color: var(--ivory);
+      letter-spacing: 0.06em;
+      text-shadow: 0 4px 30px rgba(0,0,0,0.7);
+      margin-bottom: 0.3rem;
+    }
 
-#target-name {
-  font-family: var(--display);
-  font-size: 2.4rem;
-  font-weight: 800;
-  color: #fff;
-  line-height: 1;
-  letter-spacing: -.02em;
-}
-#target-emoji {
-  font-size: 2.8rem;
-  line-height: 1;
-}
+    .hero-subtitle-vi {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(0.9rem, 2vw, 1.15rem);
+      font-style: italic;
+      letter-spacing: 0.06em;
+      color: var(--gold-pale);
+      margin-bottom: 0.5rem;
+    }
 
-#target-hint {
-  font-size: .72rem;
-  color: var(--text2);
-  line-height: 1.55;
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: var(--bg);
-  border-radius: var(--radius);
-  border-left: 2px solid var(--amber-dim);
-}
+    .hero-rule {
+      width: 80px;
+      height: 1px;
+      background: var(--gold);
+      margin: 1.5rem auto;
+      opacity: 0.6;
+    }
 
-/* Similarity bar */
-#similarity-section {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-#sim-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-#sim-label { font-size: .60rem; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
-#sim-pct {
-  font-size: 1.4rem;
-  font-family: var(--display);
-  font-weight: 700;
-  color: var(--text2);
-  transition: color .3s;
-}
-#sim-pct.good { color: var(--green); }
-#sim-pct.close { color: var(--amber); }
+    .hero-description {
+      font-family: 'EB Garamond', serif;
+      font-size: clamp(1rem, 1.5vw, 1.15rem);
+      font-style: italic;
+      color: var(--parchment);
+      opacity: 0.85;
+      max-width: 480px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.8;
+    }
 
-#sim-bar-track {
-  height: 6px;
-  background: var(--bg);
-  border-radius: 3px;
-  overflow: hidden;
-}
-#sim-bar-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 3px;
-  background: var(--muted);
-  transition: width .25s ease, background .3s;
-}
-#sim-bar-fill.good { background: var(--green); }
-#sim-bar-fill.close { background: var(--amber); }
+    .btn-cta {
+      display: inline-block;
+      font-family: 'Cinzel', serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--charcoal);
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--frame-dark));
+      padding: 1rem 2.8rem;
+      text-decoration: none;
+      position: relative;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(184,151,62,0.3);
+    }
+    .btn-cta::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border: 1px solid rgba(184,151,62,0.5);
+      transition: inset 0.3s ease;
+    }
+    .btn-cta:hover {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light), var(--gold));
+      box-shadow: 0 6px 30px rgba(184,151,62,0.5);
+      transform: translateY(-1px);
+    }
+    .btn-cta:hover::before { inset: -4px; }
 
-/* Finger analysis grid */
-#finger-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.finger-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  background: var(--bg);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  font-size: .68rem;
-}
-.finger-chip .fc-name {
-  color: var(--text2);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  flex: 1;
-}
-.finger-chip .fc-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--muted);
-  flex-shrink: 0;
-  transition: background .3s;
-}
-.finger-chip.ok .fc-dot { background: var(--green); }
-.finger-chip.warn .fc-dot { background: var(--amber); }
-.finger-chip.bad .fc-dot { background: var(--red); }
-.finger-chip .fc-val {
-  font-size: .62rem;
-  color: var(--muted);
-  min-width: 28px;
-  text-align: right;
-}
+    /* Scroll indicator */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      animation: scrollPulse 2.5s ease-in-out infinite;
+    }
+    .scroll-indicator span {
+      font-family: 'Cinzel', serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      color: var(--gold);
+      opacity: 0.6;
+      text-transform: uppercase;
+    }
+    .scroll-indicator .arrow {
+      width: 1px;
+      height: 40px;
+      background: linear-gradient(to bottom, var(--gold), transparent);
+    }
+    @keyframes scrollPulse {
+      0%, 100% { opacity: 0.4; transform: translateX(-50%) translateY(0); }
+      50% { opacity: 0.9; transform: translateX(-50%) translateY(6px); }
+    }
 
-/* AI feedback log */
-#feedback-log {
-  flex: 1;
-  overflow-y: auto;
-  padding: 14px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-#feedback-log::-webkit-scrollbar { width: 4px; }
-#feedback-log::-webkit-scrollbar-track { background: transparent; }
-#feedback-log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    /* =============================================
+       INTRODUCTION SECTION
+    ============================================= */
+    #introduction {
+      background: linear-gradient(180deg, var(--charcoal), #201508 50%, #1a1208);
+      padding: 8rem 2rem;
+      text-align: center;
+      position: relative;
+    }
 
-.fb-entry {
-  display: flex;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  border-left: 2px solid transparent;
-  animation: fbIn .25s ease;
-}
-@keyframes fbIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+    #introduction::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      opacity: 0.3;
+    }
 
-.fb-entry.success {
-  background: var(--green-dim);
-  border-color: var(--green);
-}
-.fb-entry.warning {
-  background: rgba(240,160,48,.08);
-  border-color: var(--amber);
-}
-.fb-entry.info {
-  background: rgba(64,144,255,.06);
-  border-color: var(--blue);
-}
-.fb-icon { font-size: 1rem; flex-shrink: 0; line-height: 1.4; }
-.fb-text {
-  font-size: .72rem;
-  line-height: 1.55;
-  color: var(--text);
-}
-.fb-text strong { font-weight: 500; color: #fff; display: block; margin-bottom: 2px; }
+    .intro-inner {
+      max-width: 680px;
+      margin: 0 auto;
+    }
 
-#fb-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 8px;
-  color: var(--muted);
-  font-size: .70rem;
-  letter-spacing: .10em;
-  text-transform: uppercase;
-  text-align: center;
-}
-#fb-empty svg { opacity: .25; }
+    .intro-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.68rem;
+      letter-spacing: 0.35em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
 
-/* Voice toggle */
-#voice-row {
-  padding: 10px 20px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
-#voice-label { font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .intro-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 300;
+      font-style: italic;
+      color: var(--ivory);
+      line-height: 1.3;
+      margin-bottom: 2rem;
+    }
 
-.toggle-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.toggle {
-  position: relative;
-  width: 34px; height: 18px;
-  cursor: pointer;
-}
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-slider {
-  position: absolute;
-  inset: 0;
-  background: var(--border2);
-  border-radius: 9px;
-  transition: background .25s;
-}
-.toggle-slider::after {
-  content: '';
-  position: absolute;
-  left: 2px; top: 2px;
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: var(--muted);
-  transition: transform .25s, background .25s;
-}
-.toggle input:checked + .toggle-slider { background: var(--amber-dim); }
-.toggle input:checked + .toggle-slider::after { transform: translateX(16px); background: var(--amber); }
-.toggle-text { font-size: .65rem; color: var(--text2); }
+    .intro-body {
+      font-size: 1.05rem;
+      color: var(--parchment);
+      line-height: 1.9;
+      opacity: 0.88;
+    }
 
-/* Pulse animation on correct */
-@keyframes pulse-correct {
-  0%   { box-shadow: 0 0 0 0 rgba(40,232,122,.5); }
-  70%  { box-shadow: 0 0 0 20px rgba(40,232,122,0); }
-  100% { box-shadow: 0 0 0 0 rgba(40,232,122,0); }
-}
-.pulse-green { animation: pulse-correct .6s ease; }
-</style>
+    .intro-rooms-hint {
+      margin-top: 3rem;
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      flex-wrap: wrap;
+    }
+    .intro-room-tag {
+      font-family: 'Cinzel', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--gold);
+      opacity: 0.7;
+      text-transform: uppercase;
+      padding: 0.5rem 1rem;
+      border: 1px solid rgba(184,151,62,0.25);
+    }
+
+    /* =============================================
+       CORRIDOR TRANSITION (between rooms)
+    ============================================= */
+    .corridor {
+      height: 80px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .corridor::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 50%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(184,151,62,0.2), transparent);
+    }
+    .corridor-label {
+      background: var(--charcoal);
+      padding: 0 2rem;
+      font-family: 'Cinzel', serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.4em;
+      color: rgba(184,151,62,0.4);
+      text-transform: uppercase;
+    }
+
+    /* =============================================
+       ROOM SECTIONS (shared styles)
+    ============================================= */
+    .room {
+      padding: 6rem 2rem 8rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .room-header {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 5rem;
+    }
+
+    .room-title {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+      font-weight: 500;
+      color: var(--ivory);
+      letter-spacing: 0.06em;
+      margin: 0.8rem 0;
+      line-height: 1.2;
+    }
+
+    .room-description {
+      font-family: 'EB Garamond', serif;
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--parchment);
+      opacity: 0.8;
+      line-height: 1.85;
+      max-width: 560px;
+      margin: 1.2rem auto 0;
+    }
+
+    /* Paintings grid */
+    .paintings-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5rem;
+      max-width: 860px;
+      margin: 0 auto;
+      align-items: start;
+    }
+
+    /* =============================================
+       PAINTING CARD / FRAME
+    ============================================= */
+    .painting-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: transform 0.4s ease;
+    }
+    .painting-card:hover { transform: translateY(-6px); }
+
+    .frame-outer {
+      position: relative;
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg,
+        #c9a84c 0%,
+        #f0d97a 20%,
+        #b8870e 40%,
+        #e8c96a 60%,
+        #8b6914 80%,
+        #c9a84c 100%
+      );
+      box-shadow:
+        inset 0 1px 3px rgba(255,240,160,0.5),
+        inset 0 -1px 2px rgba(0,0,0,0.4),
+        0 12px 40px rgba(0,0,0,0.6),
+        0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .frame-inner {
+      border: 3px solid rgba(0,0,0,0.3);
+      background: #111;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .frame-inner img {
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.6s ease, filter 0.6s ease;
+      filter: brightness(0.88) saturate(0.85) sepia(0.1);
+    }
+
+    .painting-card:hover .frame-inner img {
+      transform: scale(1.04);
+      filter: brightness(0.96) saturate(1) sepia(0.05);
+    }
+
+    /* Spotlight on hover */
+    .frame-inner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 40% at 50% 20%, rgba(212,174,90,0) 0%, rgba(0,0,0,0.2) 100%);
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    .painting-card:hover .frame-inner::after { opacity: 0; }
+
+    /* Corner ornaments on frame */
+    .frame-outer::before,
+    .frame-outer::after {
+      content: '✦';
+      position: absolute;
+      font-size: 0.7rem;
+      color: rgba(255,240,160,0.5);
+      z-index: 2;
+    }
+    .frame-outer::before { top: 4px; left: 4px; }
+    .frame-outer::after { bottom: 4px; right: 4px; }
+
+    /* Wall label (museum placard) */
+    .painting-label {
+      margin-top: 1.5rem;
+      text-align: center;
+      padding: 0 0.5rem;
+    }
+    .painting-label .artwork-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.05rem;
+      font-style: italic;
+      font-weight: 500;
+      color: var(--ivory);
+      line-height: 1.3;
+      margin-bottom: 0.3rem;
+    }
+    .painting-label .artist-name {
+      font-family: 'Cinzel', serif;
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 0.7rem;
+    }
+    .painting-label .artwork-desc {
+      font-family: 'EB Garamond', serif;
+      font-size: 0.88rem;
+      color: var(--parchment);
+      opacity: 0.65;
+      line-height: 1.6;
+    }
+
+    /* Placard line */
+    .placard-line {
+      width: 30px;
+      height: 1px;
+      background: var(--gold);
+      opacity: 0.4;
+      margin: 0.6rem auto;
+    }
+
+    /* =============================================
+       ROOM 1 — RENAISSANCE
+    ============================================= */
+    #room-1 {
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212,174,90,0.08) 0%, transparent 60%),
+        linear-gradient(180deg, #1a1208 0%, #201a0c 40%, #1a1208 100%);
+    }
+    #room-1::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      opacity: 0.4;
+    }
+
+    /* =============================================
+       ROOM 2 — POST-IMPRESSIONISM
+    ============================================= */
+    #room-2 {
+      background:
+        radial-gradient(ellipse 70% 60% at 30% 50%, rgba(60,30,10,0.4) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 60% at 75% 40%, rgba(20,30,60,0.3) 0%, transparent 65%),
+        linear-gradient(180deg, #0f0d18 0%, #161020 40%, #0f0d18 100%);
+    }
+    #room-2::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(to right, transparent, #6070c0, transparent);
+      opacity: 0.25;
+    }
+    #room-2 .frame-outer {
+      background: linear-gradient(135deg,
+        #8b7414 0%,
+        #c9a430 25%,
+        #6b5810 50%,
+        #b89828 75%,
+        #8b7414 100%
+      );
+    }
+
+    /* =============================================
+       ROOM 3 — IMPRESSIONISM
+    ============================================= */
+    #room-3 {
+      background:
+        radial-gradient(ellipse 90% 50% at 50% 0%, rgba(180,200,220,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 80% at 80% 60%, rgba(80,130,100,0.05) 0%, transparent 60%),
+        linear-gradient(180deg, #0d1510 0%, #101810 40%, #0d1510 100%);
+    }
+    #room-3::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(to right, transparent, rgba(150,200,180,0.5), transparent);
+      opacity: 0.3;
+    }
+
+    /* =============================================
+       ROOM 4 — VIETNAMESE ART
+    ============================================= */
+    #room-4 {
+      background:
+        radial-gradient(ellipse 70% 60% at 50% 20%, rgba(120,80,40,0.12) 0%, transparent 60%),
+        linear-gradient(180deg, #18100a 0%, #1e1408 40%, #18100a 100%);
+    }
+    #room-4::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(to right, transparent, #c9a84c 30%, #e8c96a 50%, #c9a84c 70%, transparent);
+      opacity: 0.45;
+    }
+    #room-4 .room-title { color: #f0e0c0; }
+    #room-4 .frame-outer {
+      background: linear-gradient(135deg,
+        #8b6400 0%,
+        #d4a820 20%,
+        #6b4c10 45%,
+        #c9961a 65%,
+        #7a5010 85%,
+        #8b6400 100%
+      );
+      box-shadow:
+        inset 0 1px 4px rgba(255,220,100,0.6),
+        inset 0 -1px 3px rgba(0,0,0,0.5),
+        0 16px 50px rgba(0,0,0,0.7),
+        0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    /* Lacquer-style inner border for Vietnamese room */
+    #room-4 .frame-inner {
+      border: 3px solid rgba(80,40,0,0.5);
+      border-top-color: rgba(200,160,60,0.3);
+      border-left-color: rgba(200,160,60,0.3);
+    }
+
+    /* Silk/lacquer texture hint overlay */
+    #room-4 .frame-inner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg,
+        rgba(180,130,50,0.04) 0%,
+        transparent 40%,
+        rgba(180,130,50,0.03) 100%
+      );
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* =============================================
+       REFLECTION CORNER (Góc Suy Ngẫm)
+    ============================================= */
+    #reflection {
+      padding: 8rem 2rem;
+      background:
+        radial-gradient(ellipse 50% 80% at 50% 50%, rgba(184,151,62,0.04) 0%, transparent 70%),
+        var(--charcoal);
+      text-align: center;
+      position: relative;
+    }
+
+    #reflection::before,
+    #reflection::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      opacity: 0.3;
+    }
+    #reflection::before { top: 0; }
+    #reflection::after { bottom: 0; }
+
+    .quote-container {
+      max-width: 740px;
+      margin: 0 auto;
+      position: relative;
+      padding: 4rem 3rem;
+    }
+
+    .quote-container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(184,151,62,0.12);
+      pointer-events: none;
+    }
+    .quote-container::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(184,151,62,0.06);
+      pointer-events: none;
+    }
+
+    .quote-mark {
+      font-family: 'Cinzel', serif;
+      font-size: 5rem;
+      line-height: 0.5;
+      color: var(--gold);
+      opacity: 0.2;
+      display: block;
+      margin-bottom: 1.5rem;
+      font-weight: 400;
+    }
+
+    .quote-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-style: italic;
+      font-weight: 300;
+      color: var(--ivory);
+      line-height: 1.6;
+      letter-spacing: 0.02em;
+    }
+
+    .quote-attribution {
+      margin-top: 2rem;
+      font-family: 'Cinzel', serif;
+      font-size: 0.68rem;
+      letter-spacing: 0.25em;
+      color: var(--gold);
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    /* =============================================
+       FEEDBACK SECTION
+    ============================================= */
+    /* <!-- Feedback Section --> */
+    #feedback {
+      padding: 7rem 2rem 8rem;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 0%, rgba(74,21,21,0.15) 0%, transparent 60%),
+        linear-gradient(180deg, var(--charcoal), #14100a);
+      position: relative;
+    }
+
+    #feedback::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(to right, transparent, rgba(184,151,62,0.35), transparent);
+    }
+
+    .feedback-inner {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .feedback-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .feedback-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.68rem;
+      letter-spacing: 0.35em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .feedback-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-style: italic;
+      font-weight: 300;
+      color: var(--ivory);
+    }
+
+    .feedback-subtitle {
+      font-family: 'EB Garamond', serif;
+      font-size: 0.95rem;
+      font-style: italic;
+      color: var(--parchment);
+      opacity: 0.65;
+      margin-top: 0.7rem;
+    }
+
+    /* Form styles */
+    .feedback-form {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .form-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.68rem;
+      letter-spacing: 0.22em;
+      color: var(--gold);
+      text-transform: uppercase;
+    }
+
+    .form-textarea {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(184,151,62,0.2);
+      border-bottom: 2px solid rgba(184,151,62,0.35);
+      color: var(--ivory);
+      font-family: 'EB Garamond', serif;
+      font-size: 1rem;
+      line-height: 1.7;
+      padding: 1.2rem 1.5rem;
+      width: 100%;
+      resize: vertical;
+      min-height: 140px;
+      transition: border-color 0.3s ease, background 0.3s ease;
+      outline: none;
+    }
+    .form-textarea::placeholder {
+      color: rgba(217,205,184,0.3);
+      font-style: italic;
+    }
+    .form-textarea:focus {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(184,151,62,0.5);
+      border-bottom-color: var(--gold);
+    }
+
+    /* Rating buttons */
+    .rating-group {
+      display: flex;
+      gap: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    .rating-btn {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(184,151,62,0.35);
+      background: transparent;
+      color: var(--parchment);
+      font-family: 'Cinzel', serif;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1px;
+      position: relative;
+    }
+    .rating-btn span.num { font-size: 1.15rem; font-weight: 500; }
+    .rating-btn span.star {
+      font-size: 0.5rem;
+      color: var(--gold);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .rating-btn:hover {
+      border-color: var(--gold-light);
+      color: var(--gold-light);
+      background: rgba(184,151,62,0.06);
+      transform: scale(1.05);
+    }
+    .rating-btn.selected {
+      border-color: var(--gold);
+      background: linear-gradient(135deg, rgba(184,151,62,0.18), rgba(212,174,90,0.08));
+      color: var(--gold-light);
+      box-shadow: 0 0 20px rgba(184,151,62,0.2), inset 0 0 10px rgba(184,151,62,0.06);
+    }
+    .rating-btn.selected span.star { opacity: 1; }
+
+    /* Submit button */
+    .btn-submit {
+      align-self: flex-start;
+      font-family: 'Cinzel', serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--charcoal);
+      background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--frame-dark));
+      padding: 1rem 3rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(184,151,62,0.25);
+      position: relative;
+    }
+    .btn-submit::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border: 1px solid rgba(184,151,62,0.4);
+      transition: inset 0.3s ease;
+    }
+    .btn-submit:hover {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light), var(--gold));
+      box-shadow: 0 6px 28px rgba(184,151,62,0.45);
+      transform: translateY(-1px);
+    }
+    .btn-submit:hover::before { inset: -4px; }
+
+    /* Success message */
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 2.5rem;
+      border: 1px solid rgba(184,151,62,0.2);
+      background: rgba(184,151,62,0.04);
+    }
+    .success-msg.show { display: block; }
+    .success-msg p {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem;
+      font-style: italic;
+      color: var(--ivory);
+    }
+    .success-msg .gold { color: var(--gold); }
+
+    /* =============================================
+       FOOTER
+    ============================================= */
+    footer {
+      padding: 4rem 2rem 3rem;
+      background: #0a0806;
+      text-align: center;
+      position: relative;
+    }
+    footer::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      opacity: 0.2;
+    }
+
+    .footer-logo {
+      font-family: 'Cinzel', serif;
+      font-size: 1rem;
+      letter-spacing: 0.3em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    .footer-closing {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.05rem;
+      font-style: italic;
+      color: var(--parchment);
+      opacity: 0.45;
+      max-width: 400px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    .footer-ornament {
+      margin: 1.5rem auto 0;
+      font-family: 'Cinzel', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: var(--gold);
+      opacity: 0.25;
+    }
+
+    /* =============================================
+       RESPONSIVE
+    ============================================= */
+    @media (max-width: 900px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { gap: 1.5rem; }
+      .paintings-row {
+        grid-template-columns: 1fr;
+        gap: 3.5rem;
+        max-width: 380px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .room { padding: 4rem 1.25rem 5rem; }
+      .room-header { margin-bottom: 3rem; }
+      .quote-container { padding: 2.5rem 1.5rem; }
+      .hero-content { padding: 6rem 1.5rem 2rem; }
+      .rating-group { gap: 0.8rem; }
+      .rating-btn { width: 58px; height: 58px; }
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ── Header ─────────────────────────────────── -->
-<div id="header">
-  <div id="logo">
-    <span id="logo-name">SignSpace</span>
-    <span id="logo-tag">AI Coach</span>
+  <!-- ===================== NAVIGATION ===================== -->
+  <nav id="main-nav">
+    <a href="#hero" class="nav-brand">Bảo Tàng Cảm Xúc</a>
+    <ul class="nav-links">
+      <li><a href="#room-1">Phục Hưng</a></li>
+      <li><a href="#room-2">Cảm Xúc</a></li>
+      <li><a href="#room-3">Ấn Tượng</a></li>
+      <li><a href="#room-4">Việt Nam</a></li>
+      <li><a href="#feedback">Đánh Giá</a></li>
+    </ul>
+  </nav>
+
+  <!-- ===================== HERO SECTION ===================== -->
+  <section id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-columns">
+      <div class="hero-col"></div>
+      <div class="hero-col"></div>
+    </div>
+    <div class="hero-light"></div>
+    <div class="hero-frame-hint"></div>
+    <div class="hero-floor"></div>
+
+    <div class="hero-content">
+      <div class="hero-eyebrow">Triển lãm nghệ thuật</div>
+      <h1 class="hero-title">Bảo Tàng<br>Cảm Xúc</h1>
+      <div class="hero-subtitle-vi">Musée des Émotions</div>
+      <div class="hero-rule"></div>
+      <p class="hero-description">
+        Một hành trình xuyên qua những khoảnh khắc vĩ đại nhất của lịch sử hội họa —<br>
+        nơi mỗi căn phòng là một thế giới, mỗi tác phẩm là một linh hồn.
+      </p>
+      <a href="#introduction" class="btn-cta">Bắt đầu chuyến tham quan</a>
+    </div>
+
+    <div class="scroll-indicator">
+      <span>Cuộn xuống</span>
+      <div class="arrow"></div>
+    </div>
+  </section>
+
+  <!-- ===================== INTRODUCTION ===================== -->
+  <section id="introduction">
+    <div class="intro-inner">
+      <p class="intro-label reveal">◆ &nbsp; Lời mở đầu &nbsp; ◆</p>
+      <h2 class="intro-title reveal reveal-delay-1">
+        "Nghệ thuật không phải là những gì bạn nhìn thấy,<br>
+        mà là những gì bạn cảm thấy khi nhìn."
+      </h2>
+      <div class="ornament reveal reveal-delay-2">
+        <span>✦ ✦ ✦</span>
+      </div>
+      <p class="intro-body reveal reveal-delay-2">
+        Chào mừng bạn đến với Bảo Tàng Cảm Xúc — một hành trình đi qua bốn giai đoạn vĩ đại
+        của lịch sử hội họa thế giới, khép lại bằng hồn cốt tinh tế của nghệ thuật Việt Nam.
+        Mỗi bước chân là một phòng triển lãm riêng biệt, mang âm hưởng và ánh sáng của
+        riêng mình. Hãy bước đi chậm rãi — vẻ đẹp cần thời gian.
+      </p>
+      <div class="intro-rooms-hint reveal reveal-delay-3">
+        <span class="intro-room-tag">I. Phục Hưng</span>
+        <span class="intro-room-tag">II. Cảm Xúc</span>
+        <span class="intro-room-tag">III. Ấn Tượng</span>
+        <span class="intro-room-tag">IV. Hồn Việt</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       ROOM 1 — RENAISSANCE
+  ====================================================== -->
+  <!-- Room 1 -->
+  <div class="corridor">
+    <span class="corridor-label">Tiến vào Phòng I</span>
   </div>
 
-  <div class="header-mid">
-    <div class="ctrl-group">
-      <span class="ctrl-label">Gesture</span>
-      <select id="gesture-select" onchange="selectGesture(this.value)">
-        <option value="hello">👋 Hello</option>
-        <option value="thankyou">🙏 Thank You</option>
-        <option value="sorry">😔 Sorry</option>
-        <option value="yes">✅ Yes</option>
-        <option value="no">❌ No</option>
-        <option value="help">🆘 Help</option>
-        <option value="please">🤲 Please</option>
-        <option value="love">❤️ Love</option>
-        <option value="good">👍 Good</option>
-        <option value="stop">✋ Stop</option>
-      </select>
+  <section id="room-1" class="room">
+    <div class="room-header">
+      <p class="room-number reveal">Phòng I</p>
+      <h2 class="room-title reveal reveal-delay-1">Ánh Sáng Phục Hưng</h2>
+      <div class="ornament reveal reveal-delay-2"><span>◈</span></div>
+      <p class="room-description reveal reveal-delay-2">
+        Thế kỷ XV–XVI. Con người trở thành trung tâm vũ trụ. Ánh sáng, tỉ lệ,
+        vẻ đẹp cổ điển và thần thoại hoà quyện trong từng nét bút. Đây là thời đại
+        mà nghệ thuật tìm lại linh hồn của mình qua nhân thể và tri thức.
+      </p>
     </div>
 
-    <div id="status-pill">
-      <div id="status-dot"></div>
-      <span id="status-text">Camera Off</span>
+    <div class="paintings-row">
+
+      <!-- Painting 1.1 — The Birth of Venus (SVG recreation) -->
+      <div class="painting-card reveal reveal-delay-1">
+        <div class="frame-outer">
+          <div class="frame-inner">
+            <svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;aspect-ratio:3/4;display:block;">
+              <defs>
+                <linearGradient id="skyVenus" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#b8d4e8"/>
+                  <stop offset="55%" stop-color="#d4e8f0"/>
+                  <stop offset="100%" stop-color="#c8dce8"/>
+                </linearGradient>
+                <linearGradient id="seaVenus" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#6aa0c0"/>
+                  <stop offset="100%" stop-color="#3a6880"/>
+                </linearGradient>
+                <radialGradient id="skinVenus" cx="50%" cy="40%" r="60%">
+                  <stop offset="0%" stop-color="#f5e0c0"/>
+                  <stop offset="60%" stop-color="#e8c8a0"/>
+                  <stop offset="100%" stop-color="#d4a870"/>
+                </radialGradient>
+                <linearGradient id="shellGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#f0e0b0"/>
+                  <stop offset="50%" stop-color="#e8d090"/>
+                  <stop offset="100%" stop-color="#c8a860"/>
+                </linearGradient>
+                <filter id="glow1">
+                  <feGaussianBlur stdDeviation="2" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <!-- Sky -->
+              <rect width="300" height="230" fill="url(#skyVenus)"/>
+              <!-- Soft clouds -->
+              <ellipse cx="60" cy="50" rx="45" ry="22" fill="#ffffff" opacity="0.55"/>
+              <ellipse cx="90" cy="45" rx="35" ry="18" fill="#ffffff" opacity="0.45"/>
+              <ellipse cx="220" cy="60" rx="50" ry="20" fill="#ffffff" opacity="0.5"/>
+              <ellipse cx="245" cy="55" rx="30" ry="16" fill="#ffffff" opacity="0.4"/>
+              <ellipse cx="150" cy="30" rx="40" ry="15" fill="#ffffff" opacity="0.35"/>
+              <!-- Wind god Zephyr (left, blowing) -->
+              <ellipse cx="35" cy="100" rx="32" ry="40" fill="#c8d8e8" opacity="0.7"/>
+              <ellipse cx="20" cy="115" rx="20" ry="28" fill="#b8cce0" opacity="0.6"/>
+              <!-- Zephyr face hint -->
+              <circle cx="38" cy="95" r="12" fill="#e0c8b0" opacity="0.8"/>
+              <!-- Wind lines -->
+              <path d="M55,108 Q120,90 155,160" stroke="#d0e4f0" stroke-width="1.5" fill="none" opacity="0.6"/>
+              <path d="M55,115 Q115,100 150,168" stroke="#d0e4f0" stroke-width="1.5" fill="none" opacity="0.5"/>
+              <path d="M52,122 Q110,108 148,175" stroke="#c8dce8" stroke-width="1" fill="none" opacity="0.5"/>
+              <!-- Hora (right figure with cloth) -->
+              <ellipse cx="268" cy="130" rx="28" ry="55" fill="#d4c090" opacity="0.75"/>
+              <!-- Hora drapery -->
+              <path d="M248,95 Q275,85 290,110 Q280,140 265,165 Q245,155 240,130 Q242,110 248,95Z" fill="#c8b870" opacity="0.7"/>
+              <!-- Flowers from Hora -->
+              <circle cx="258" cy="90" r="5" fill="#e06080" opacity="0.8"/>
+              <circle cx="268" cy="82" r="4" fill="#e88090" opacity="0.7"/>
+              <circle cx="278" cy="88" r="5" fill="#c84060" opacity="0.8"/>
+              <circle cx="250" cy="85" r="3.5" fill="#e06080" opacity="0.7"/>
+              <!-- Sea / waves -->
+              <rect x="0" y="228" width="300" height="172" fill="url(#seaVenus)"/>
+              <!-- Wave crests -->
+              <path d="M0,240 Q25,230 50,240 Q75,250 100,240 Q125,230 150,240 Q175,250 200,240 Q225,230 250,240 Q275,250 300,240" stroke="#90c0d8" stroke-width="2" fill="none" opacity="0.6"/>
+              <path d="M0,258 Q30,248 60,258 Q90,268 120,258 Q150,248 180,258 Q210,268 240,258 Q270,248 300,258" stroke="#80b0d0" stroke-width="1.5" fill="none" opacity="0.5"/>
+              <path d="M0,275 Q35,265 70,275 Q105,285 140,275 Q175,265 210,275 Q245,285 280,275 Q295,270 300,275" stroke="#70a8c8" stroke-width="1.5" fill="none" opacity="0.4"/>
+              <!-- Sea foam / shell base -->
+              <ellipse cx="150" cy="250" rx="60" ry="20" fill="#f0e8d0" opacity="0.6"/>
+              <!-- Giant shell -->
+              <path d="M100,265 Q150,230 200,265 Q185,290 150,295 Q115,290 100,265Z" fill="url(#shellGrad)"/>
+              <!-- Shell ridges -->
+              <line x1="150" y1="232" x2="110" y2="268" stroke="#d4b870" stroke-width="1" opacity="0.5"/>
+              <line x1="150" y1="232" x2="130" y2="272" stroke="#d4b870" stroke-width="1" opacity="0.5"/>
+              <line x1="150" y1="232" x2="150" y2="274" stroke="#d4b870" stroke-width="1" opacity="0.5"/>
+              <line x1="150" y1="232" x2="170" y2="272" stroke="#d4b870" stroke-width="1" opacity="0.5"/>
+              <line x1="150" y1="232" x2="190" y2="268" stroke="#d4b870" stroke-width="1" opacity="0.5"/>
+              <!-- Venus figure body -->
+              <ellipse cx="150" cy="195" rx="28" ry="55" fill="url(#skinVenus)"/>
+              <!-- Venus legs -->
+              <ellipse cx="145" cy="248" rx="12" ry="20" fill="#e8c898" opacity="0.9"/>
+              <ellipse cx="158" cy="250" rx="11" ry="18" fill="#e0c090" opacity="0.9"/>
+              <!-- Venus hair (long, auburn-gold, wind-blown) -->
+              <path d="M130,110 Q110,130 100,155 Q95,175 105,195 Q115,180 120,165 Q128,148 130,130Z" fill="#c8903a" opacity="0.85"/>
+              <path d="M130,110 Q115,125 112,145 Q108,165 118,185 Q125,170 128,155 Q130,138 133,120Z" fill="#d4a040" opacity="0.75"/>
+              <path d="M170,112 Q185,125 195,145 Q202,168 196,192 Q186,178 180,160 Q172,140 168,122Z" fill="#c8903a" opacity="0.8"/>
+              <!-- Venus head -->
+              <ellipse cx="150" cy="118" rx="28" ry="32" fill="url(#skinVenus)"/>
+              <!-- Venus hair top -->
+              <path d="M122,108 Q135,85 150,82 Q165,85 178,108 Q168,95 150,92 Q132,95 122,108Z" fill="#c8903a"/>
+              <!-- Face features -->
+              <ellipse cx="142" cy="115" rx="4" ry="5" fill="#5a3828" opacity="0.7"/>
+              <ellipse cx="158" cy="115" rx="4" ry="5" fill="#5a3828" opacity="0.7"/>
+              <path d="M144,128 Q150,132 156,128" stroke="#c07858" stroke-width="1.8" fill="none"/>
+              <!-- Modesty drapery (hand/cloth) -->
+              <path d="M128,185 Q140,175 152,178 Q155,195 150,210 Q140,205 130,200 Q126,192 128,185Z" fill="#f0e0c0" opacity="0.6"/>
+              <!-- Golden glow halo -->
+              <ellipse cx="150" cy="118" rx="38" ry="42" fill="#ffe8a0" opacity="0.07" filter="url(#glow1)"/>
+            </svg>
+          </div>
+        </div>
+        <div class="painting-label">
+          <div class="artwork-name">The Birth of Venus</div>
+          <div class="placard-line"></div>
+          <div class="artist-name">Sandro Botticelli · 1484–1486</div>
+          <div class="artwork-desc">Thần Vệ Nữ hiện ra từ biển cả — biểu tượng bất diệt về vẻ đẹp, yêu thương và sự tái sinh của linh hồn.</div>
+        </div>
+      </div>
+
+      <!-- Painting 1.2 — Mona Lisa (SVG recreation) -->
+      <div class="painting-card reveal reveal-delay-2">
+        <div class="frame-outer">
+          <div class="frame-inner">
+            <svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;aspect-ratio:3/4;display:block;">
+              <defs>
+                <linearGradient id="sfumatoSky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#7a8c98"/>
+                  <stop offset="40%" stop-color="#8fa0a8"/>
+                  <stop offset="100%" stop-color="#6a7a88"/>
+                </linearGradient>
+                <linearGradient id="sfumatoLand" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#5a6e6a"/>
+                  <stop offset="50%" stop-color="#4a5e5a"/>
+                  <stop offset="100%" stop-color="#3a4e4a"/>
+                </linearGradient>
+                <radialGradient id="skinMona" cx="50%" cy="38%" r="55%">
+                  <stop offset="0%" stop-color="#f0d8b0"/>
+                  <stop offset="65%" stop-color="#d8b888"/>
+                  <stop offset="100%" stop-color="#b89060"/>
+                </radialGradient>
+                <linearGradient id="drapeML" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#2a3520"/>
+                  <stop offset="50%" stop-color="#384528"/>
+                  <stop offset="100%" stop-color="#202a18"/>
+                </linearGradient>
+                <filter id="sfumato">
+                  <feGaussianBlur stdDeviation="1.2"/>
+                </filter>
+                <filter id="sfumatoSoft">
+                  <feGaussianBlur stdDeviation="0.6"/>
+                </filter>
+              </defs>
+              <!-- Sfumato background landscape -->
+              <rect width="300" height="400" fill="#6a7a88"/>
+              <!-- Sky left -->
+              <rect x="0" y="0" width="130" height="180" fill="url(#sfumatoSky)"/>
+              <!-- Sky right -->
+              <rect x="170" y="0" width="130" height="180" fill="url(#sfumatoSky)"/>
+              <!-- Misty mountains left -->
+              <path d="M0,180 Q20,120 50,140 Q70,100 90,130 Q110,80 130,160 L130,400 L0,400Z" fill="#4a5e5a" opacity="0.7"/>
+              <path d="M0,200 Q30,140 60,160 Q80,120 100,150 Q115,100 130,180 L130,400 L0,400Z" fill="#3a4e4a" opacity="0.5"/>
+              <!-- Misty mountains right -->
+              <path d="M170,160 Q185,90 210,120 Q230,80 255,110 Q270,70 300,150 L300,400 L170,400Z" fill="#4a5e5a" opacity="0.7"/>
+              <path d="M170,180 Q190,110 215,140 Q240,95 265,125 Q280,85 300,165 L300,400 L170,400Z" fill="#3a4e4a" opacity="0.5"/>
+              <!-- Winding road/river in distance -->
+              <path d="M60,220 Q90,200 110,215 Q125,205 130,220" stroke="#5a7070" stroke-width="3" fill="none" opacity="0.5"/>
+              <path d="M175,215 Q190,200 210,210 Q235,195 265,215" stroke="#5a7070" stroke-width="3" fill="none" opacity="0.5"/>
+              <!-- Sfumato mist layer -->
+              <rect x="0" y="150" width="300" height="60" fill="#8090a0" opacity="0.2" filter="url(#sfumato)"/>
+              <!-- Architectural ledge / parapet -->
+              <rect x="0" y="240" width="130" height="20" fill="#4a3a28" opacity="0.85"/>
+              <rect x="170" y="240" width="130" height="20" fill="#4a3a28" opacity="0.85"/>
+              <!-- Column pillar suggestions -->
+              <rect x="0" y="0" width="25" height="260" fill="#3a2e20" opacity="0.6"/>
+              <rect x="105" y="0" width="20" height="260" fill="#3a2e20" opacity="0.4"/>
+              <rect x="175" y="0" width="20" height="260" fill="#3a2e20" opacity="0.4"/>
+              <rect x="275" y="0" width="25" height="260" fill="#3a2e20" opacity="0.6"/>
+              <!-- Body / dress - dark green velvet -->
+              <path d="M70,310 Q85,270 100,255 Q125,245 150,245 Q175,245 200,255 Q215,270 230,310 L245,400 L55,400Z" fill="url(#drapeML)"/>
+              <!-- Dress neckline -->
+              <path d="M110,258 Q150,248 190,258 Q175,272 150,270 Q125,272 110,258Z" fill="#2a3018" opacity="0.9"/>
+              <!-- Veil/hair drape over shoulders -->
+              <path d="M90,200 Q75,240 72,290 Q78,275 88,260 Q95,245 100,255" fill="#2a2818" opacity="0.6"/>
+              <path d="M210,200 Q225,240 228,290 Q222,275 212,260 Q205,245 200,255" fill="#2a2818" opacity="0.6"/>
+              <!-- Neck -->
+              <rect x="132" y="230" width="36" height="28" rx="8" fill="url(#skinMona)"/>
+              <!-- Head - slight 3/4 turn -->
+              <ellipse cx="152" cy="165" rx="60" ry="68" fill="url(#skinMona)"/>
+              <!-- Sfumato edge softening -->
+              <ellipse cx="152" cy="165" rx="62" ry="70" fill="none" stroke="#c0a070" stroke-width="8" opacity="0.1" filter="url(#sfumato)"/>
+              <!-- Hair - center part, dark brown, wavy -->
+              <path d="M92,148 Q110,90 152,86 Q194,90 212,148 Q200,115 152,110 Q104,115 92,148Z" fill="#2a1a0a"/>
+              <!-- Hair waves left -->
+              <path d="M92,148 Q85,168 88,195 Q94,175 98,158Z" fill="#2a1a0a"/>
+              <!-- Hair waves right -->
+              <path d="M212,148 Q219,168 216,195 Q210,175 206,158Z" fill="#2a1a0a"/>
+              <!-- Veil top (translucent) -->
+              <path d="M100,105 Q152,85 204,105 Q195,98 152,94 Q109,98 100,105Z" fill="#2a2010" opacity="0.5"/>
+              <!-- Eyebrows (very subtle/none - famously no eyebrows) -->
+              <!-- Eyes - sfumato, mysterious -->
+              <ellipse cx="134" cy="155" rx="13" ry="9" fill="#e8cca0" opacity="0.9"/>
+              <ellipse cx="134" cy="156" rx="8" ry="6.5" fill="#2a1808"/>
+              <ellipse cx="134" cy="156" rx="5" ry="5" fill="#180e04"/>
+              <ellipse cx="132" cy="154" rx="2.5" ry="2" fill="#ffffff" opacity="0.35"/>
+              <!-- Right eye -->
+              <ellipse cx="170" cy="155" rx="13" ry="9" fill="#e8cca0" opacity="0.9"/>
+              <ellipse cx="170" cy="156" rx="8" ry="6.5" fill="#2a1808"/>
+              <ellipse cx="170" cy="156" rx="5" ry="5" fill="#180e04"/>
+              <ellipse cx="168" cy="154" rx="2.5" ry="2" fill="#ffffff" opacity="0.35"/>
+              <!-- Sfumato eye edges -->
+              <ellipse cx="134" cy="155" rx="14" ry="10" fill="none" stroke="#b08858" stroke-width="2" opacity="0.25" filter="url(#sfumatoSoft)"/>
+              <ellipse cx="170" cy="155" rx="14" ry="10" fill="none" stroke="#b08858" stroke-width="2" opacity="0.25" filter="url(#sfumatoSoft)"/>
+              <!-- Nose - sfumato, barely defined -->
+              <path d="M150,170 Q148,185 145,192 Q150,196 155,192 Q152,185 150,170Z" fill="#c09870" opacity="0.3" filter="url(#sfumatoSoft)"/>
+              <!-- Nostrils -->
+              <ellipse cx="145" cy="192" rx="4" ry="2.5" fill="#9a6840" opacity="0.3"/>
+              <ellipse cx="157" cy="192" rx="4" ry="2.5" fill="#9a6840" opacity="0.3"/>
+              <!-- The enigmatic smile -->
+              <path d="M132,208 Q142,203 152,204 Q162,203 170,208" stroke="#b07850" stroke-width="1.8" fill="none" filter="url(#sfumatoSoft)"/>
+              <path d="M132,208 Q142,215 152,216 Q162,215 170,208" fill="#c08868" opacity="0.5" filter="url(#sfumatoSoft)"/>
+              <!-- Cheek shadow -->
+              <ellipse cx="118" cy="175" rx="20" ry="15" fill="#a07040" opacity="0.12" filter="url(#sfumato)"/>
+              <ellipse cx="186" cy="175" rx="20" ry="15" fill="#a07040" opacity="0.12" filter="url(#sfumato)"/>
+              <!-- Hands (folded, lower composition) -->
+              <ellipse cx="120" cy="345" rx="35" ry="18" fill="#d8b880" opacity="0.85"/>
+              <ellipse cx="180" cy="350" rx="38" ry="16" fill="#c8a870" opacity="0.85"/>
+              <!-- Finger suggestions -->
+              <path d="M100,340 Q108,332 112,340" stroke="#c09870" stroke-width="2" fill="none" opacity="0.6"/>
+              <path d="M108,338 Q116,328 120,337" stroke="#c09870" stroke-width="2" fill="none" opacity="0.6"/>
+              <path d="M185,342 Q192,330 197,340" stroke="#b08860" stroke-width="2" fill="none" opacity="0.6"/>
+              <path d="M193,340 Q202,328 207,338" stroke="#b08860" stroke-width="2" fill="none" opacity="0.6"/>
+            </svg>
+          </div>
+        </div>
+        <div class="painting-label">
+          <div class="artwork-name">Mona Lisa</div>
+          <div class="placard-line"></div>
+          <div class="artist-name">Leonardo da Vinci · 1503–1519</div>
+          <div class="artwork-desc">Nụ cười bí ẩn muôn đời. Sfumato — kỹ thuật ánh sáng mờ ảo — đã tạo nên con người huyền thoại vượt thời gian.</div>
+        </div>
+      </div>
+
     </div>
+  </section>
+
+  <!-- =====================================================
+       ROOM 2 — POST-IMPRESSIONISM / EMOTIONAL
+  ====================================================== -->
+  <!-- Room 2 -->
+  <div class="corridor">
+    <span class="corridor-label">Tiến vào Phòng II</span>
   </div>
 
-  <button id="btn-start" onclick="startCamera()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="10"/>
-      <polygon points="10,8 16,12 10,16"/>
-    </svg>
-    Start Camera
-  </button>
-</div>
-
-<!-- ── Main ───────────────────────────────────── -->
-<div id="main">
-
-  <!-- Left: Camera feed -->
-  <div id="cam-panel">
-    <div id="cam-idle">
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-        <rect x="2" y="7" width="15" height="13" rx="2"/>
-        <path d="M17 9l5-2v10l-5-2"/>
-      </svg>
-      <p>Press "Start Camera" to begin</p>
+  <section id="room-2" class="room">
+    <div class="room-header">
+      <p class="room-number reveal">Phòng II</p>
+      <h2 class="room-title reveal reveal-delay-1">Những Cơn Sóng Của Cảm Xúc</h2>
+      <div class="ornament reveal reveal-delay-2"><span>◈</span></div>
+      <p class="room-description reveal reveal-delay-2">
+        Cuối thế kỷ XIX. Màu sắc không còn là công cụ mô tả — chúng là tiếng nói nội tâm,
+        là xúc cảm chưa kịp thành lời. Những cơn xoáy sắc màu, những bông hoa rực lửa,
+        những vì sao đang hát — đây là thế giới của Van Gogh.
+      </p>
     </div>
 
-    <div id="canvas-container">
-      <video id="video" playsinline autoplay muted></video>
-      <canvas id="output-canvas"></canvas>
-    </div>
+    <div class="paintings-row">
 
-    <div id="gesture-overlay">Tracking: <span id="overlay-gesture">Hello</span></div>
-    <div id="score-overlay">
-      <div>
-        <div id="score-num">—</div>
-        <div id="score-label">Similarity</div>
+      <!-- Painting 2.1 -->
+      <div class="painting-card reveal reveal-delay-1">
+        <div class="frame-outer">
+          <div class="frame-inner">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/4/46/Vincent_van_Gogh_-_Sunflowers_-_VGM_F458.jpg"
+              alt="Sunflowers — Van Gogh"
+              loading="lazy"
+              onerror="this.style.display='none';this.parentNode.innerHTML=`<svg viewBox='0 0 300 400' xmlns='http://www.w3.org/2000/svg' style='width:100%;aspect-ratio:3/4;display:block;'><defs><radialGradient id='bg21' cx='50%' cy='40%' r='60%'><stop offset='0%' stop-color='#d4a820'/><stop offset='60%' stop-color='#a07818'/><stop offset='100%' stop-color='#6b4e08'/></radialGradient><radialGradient id='petal21' cx='50%' cy='50%' r='50%'><stop offset='0%' stop-color='#f5c842'/><stop offset='100%' stop-color='#d4860a'/></radialGradient></defs><rect width='300' height='400' fill='url(%23bg21)'/><rect width='300' height='400' fill='%23b8860e' opacity='0.3'/><circle cx='100' cy='100' r='42' fill='url(%23petal21)'/><circle cx='100' cy='100' r='18' fill='%234a2800'/><ellipse cx='72' cy='100' rx='14' ry='8' fill='%23f5c842' opacity='0.9'/><ellipse cx='128' cy='100' rx='14' ry='8' fill='%23f5c842' opacity='0.9'/><ellipse cx='100' cy='72' rx='8' ry='14' fill='%23f5c842' opacity='0.9'/><ellipse cx='100' cy='128' rx='8' ry='14' fill='%23f5c842' opacity='0.9'/><ellipse cx='79' cy='79' rx='10' ry='7' fill='%23e8b020' opacity='0.85' transform='rotate(-45 79 79)'/><ellipse cx='121' cy='79' rx='10' ry='7' fill='%23e8b020' opacity='0.85' transform='rotate(45 121 79)'/><ellipse cx='79' cy='121' rx='10' ry='7' fill='%23e8b020' opacity='0.85' transform='rotate(45 79 121)'/><ellipse cx='121' cy='121' rx='10' ry='7' fill='%23e8b020' opacity='0.85' transform='rotate(-45 121 121)'/><line x1='100' y1='142' x2='100' y2='400' stroke='%23386820' stroke-width='6'/><circle cx='200' cy='160' r='36' fill='url(%23petal21)'/><circle cx='200' cy='160' r='15' fill='%234a2800'/><ellipse cx='176' cy='160' rx='12' ry='7' fill='%23f5c842' opacity='0.9'/><ellipse cx='224' cy='160' rx='12' ry='7' fill='%23f5c842' opacity='0.9'/><ellipse cx='200' cy='136' rx='7' ry='12' fill='%23f5c842' opacity='0.9'/><ellipse cx='200' cy='184' rx='7' ry='12' fill='%23f5c842' opacity='0.9'/><ellipse cx='181' cy='141' rx='9' ry='6' fill='%23e8b020' opacity='0.85' transform='rotate(-45 181 141)'/><ellipse cx='219' cy='141' rx='9' ry='6' fill='%23e8b020' opacity='0.85' transform='rotate(45 219 141)'/><line x1='200' y1='196' x2='190' y2='400' stroke='%23386820' stroke-width='5'/><circle cx='60' cy='230' r='28' fill='url(%23petal21)' opacity='0.9'/><circle cx='60' cy='230' r='12' fill='%234a2800'/><ellipse cx='38' cy='230' rx='10' ry='6' fill='%23f5c842'/><ellipse cx='82' cy='230' rx='10' ry='6' fill='%23f5c842'/><ellipse cx='60' cy='208' rx='6' ry='10' fill='%23f5c842'/><ellipse cx='60' cy='252' rx='6' ry='10' fill='%23f5c842'/><line x1='60' y1='258' x2='65' y2='400' stroke='%23386820' stroke-width='4'/><circle cx='240' cy='280' r='32' fill='url(%23petal21)' opacity='0.88'/><circle cx='240' cy='280' r='14' fill='%234a2800'/><ellipse cx='214' cy='280' rx='11' ry='7' fill='%23f5c842'/><ellipse cx='266' cy='280' rx='11' ry='7' fill='%23f5c842'/><ellipse cx='240' cy='254' rx='7' ry='11' fill='%23f5c842'/><ellipse cx='240' cy='306' rx='7' ry='11' fill='%23f5c842'/><line x1='240' y1='312' x2='235' y2='400' stroke='%23386820' stroke-width='5'/><rect x='60' y='360' width='200' height='40' fill='%23704808' opacity='0.5' rx='4'/></svg>`"
+            />
+          </div>
+        </div>
+        <div class="painting-label">
+          <div class="artwork-name">Sunflowers</div>
+          <div class="placard-line"></div>
+          <div class="artist-name">Vincent van Gogh · 1888</div>
+          <div class="artwork-desc">Vàng rực như mặt trời — những bông hướng dương không chỉ là hoa, chúng là lòng biết ơn và khát vọng sống cháy bỏng.</div>
+        </div>
       </div>
+
+      <!-- Painting 2.2 -->
+      <div class="painting-card reveal reveal-delay-2">
+        <div class="frame-outer">
+          <div class="frame-inner">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg"
+              alt="The Starry Night — Van Gogh"
+              loading="lazy"
+              onerror="this.onerror=null;this.parentNode.innerHTML=this.parentNode.innerHTML;"
+            />
+          </div>
+        </div>
+        <div class="painting-label">
+          <div class="artwork-name">The Starry Night</div>
+          <div class="placard-line"></div>
+          <div class="artist-name">Vincent van Gogh · 1889</div>
+          <div class="artwork-desc">Những vòng xoáy ánh sáng trên bầu trời đêm — vũ trụ đang thở, đang rung động, đang hát bản nhạc riêng của mình.</div>
+        </div>
+      </div>
+
+
     </div>
+  </section>
+
+  <!-- =====================================================
+       ROOM 3 — IMPRESSIONISM
+  ====================================================== -->
+  <!-- Room 3 -->
+  <div class="corridor">
+    <span class="corridor-label">Tiến vào Phòng III</span>
   </div>
 
-  <!-- Right: Feedback panel -->
-  <div id="feedback-panel">
-
-    <!-- Target gesture info -->
-    <div id="target-card">
-      <div id="target-header">
-        <span id="target-title">Current Target</span>
-        <span id="target-emoji">👋</span>
-      </div>
-      <div id="target-name">Hello</div>
-      <div id="target-hint" id="target-hint">Wave your open hand side to side. All fingers extended, palm facing forward.</div>
+  <section id="room-3" class="room">
+    <div class="room-header">
+      <p class="room-number reveal">Phòng III</p>
+      <h2 class="room-title reveal reveal-delay-1">Ánh Sáng Trôi Qua</h2>
+      <div class="ornament reveal reveal-delay-2"><span>◈</span></div>
+      <p class="room-description reveal reveal-delay-2">
+        Giữa thế kỷ XIX. Các họa sĩ bước ra ngoài trời, đặt giá vẽ trước thiên nhiên thật.
+        Khoảnh khắc hiện hữu rồi tan biến — ánh sáng thay đổi từng giây. Nghệ thuật Ấn Tượng
+        chụp lại không phải sự vật, mà là cảm giác khi ta thấy sự vật ấy.
+      </p>
     </div>
 
-    <!-- Similarity score -->
-    <div id="similarity-section">
-      <div id="sim-header">
-        <span id="sim-label">Match Score</span>
-        <span id="sim-pct">--%</span>
+    <div class="paintings-row">
+
+      <!-- Painting 3.1 -->
+      <div class="painting-card reveal reveal-delay-1">
+        <div class="frame-outer">
+          <div class="frame-inner">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/5/59/Monet_-_Impression%2C_Sunrise.jpg"
+              alt="Impression, Sunrise — Monet"
+              loading="lazy"
+            />
+          </div>
+        </div>
+        <div class="painting-label">
+          <div class="artwork-name">Impression, Sunrise</div>
+          <div class="placard-line"></div>
+          <div class="artist-name">Claude Monet · 1872</div>
+          <div class="artwork-desc">Bức tranh khai sinh cả một phong trào. Bình minh trên cảng Le Havre — tia sáng cam đỏ rực trên làn nước xám xịt. Khoảnh khắc thuần túy.</div>
+        </div>
       </div>
-      <div id="sim-bar-track">
-        <div id="sim-bar-fill"></div>
+
+      <!-- Painting 3.2 -->
+      <div class="painting-card reveal reveal-delay-2">
+        <div class="frame-outer">
+          <div class="frame-inner">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/a/aa/Claude_Monet_-_Water_Lilies_-_1906%2C_Ryerson.jpg"
+              alt="Water Lilies — Monet"
+              loading="lazy"
+            />
+          </div>
+        </div>
+        <div class="painting-label">
+          <div class="artwork-name">Water Lilies</div>
+          <div class="placard-line"></div>
+          <div class="artist-name">Claude Monet · 1906</div>
+          <div class="artwork-desc">Mặt hồ Giverny như một tấm gương biết thở. Những bông súng trắng — thinh lặng thuần khiết nhất trong lịch sử hội họa.</div>
+        </div>
       </div>
+
+
+    </div>
+  </section>
+
+  <!-- =====================================================
+       ROOM 4 — VIETNAMESE ART
+  ====================================================== -->
+  <!-- Room 4 -->
+  <div class="corridor">
+    <span class="corridor-label">Tiến vào Phòng IV</span>
+  </div>
+
+  <section id="room-4" class="room">
+    <div class="room-header">
+      <p class="room-number reveal" style="color: var(--gold-light);">Phòng IV</p>
+      <h2 class="room-title reveal reveal-delay-1">Hồn Việt Trong Hội Họa</h2>
+      <div class="ornament reveal reveal-delay-2"><span>◈</span></div>
+      <p class="room-description reveal reveal-delay-2">
+        Những năm 1930–1945. Thế hệ họa sĩ đầu tiên của Việt Nam, đào tạo tại
+        Trường Mỹ thuật Đông Dương, đã tạo ra ngôn ngữ nghệ thuật riêng —
+        kết hợp kỹ thuật phương Tây với hồn cốt, ký ức và đời sống người Việt.
+        Lụa, sơn dầu và sơn mài trở thành linh hồn của dân tộc.
+      </p>
     </div>
 
-    <!-- Finger state chips -->
-    <div id="finger-grid">
-      <div class="finger-chip" id="fc-thumb">
-        <div class="fc-dot"></div>
-        <span class="fc-name">Thumb</span>
-        <span class="fc-val" id="fv-thumb">--</span>
+    <div class="paintings-row">
+
+      <!-- Painting 4.1 -->
+      <div class="painting-card reveal reveal-delay-1">
+        <div class="frame-outer">
+          <div class="frame-inner">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/a/a2/To_Ngoc_Van-thieu_nu_ben_hoa_hue.jpg"
+              alt="Thiếu nữ bên hoa huệ — Tô Ngọc Vân"
+              loading="lazy"
+            />
+          </div>
+        </div>
+        <div class="painting-label">
+          <div class="artwork-name">Thiếu Nữ Bên Hoa Huệ</div>
+          <div class="placard-line"></div>
+          <div class="artist-name">Tô Ngọc Vân · 1943</div>
+          <div class="artwork-desc">Thiếu nữ trong áo dài trắng, mơ màng bên những bông huệ. Vẻ đẹp thuần khiết và dịu dàng của người phụ nữ Việt Nam trước bão lịch sử.</div>
+        </div>
       </div>
-      <div class="finger-chip" id="fc-index">
-        <div class="fc-dot"></div>
-        <span class="fc-name">Index</span>
-        <span class="fc-val" id="fv-index">--</span>
+
+      <!-- Painting 4.2 -->
+      <div class="painting-card reveal reveal-delay-2">
+        <div class="frame-outer">
+          <div class="frame-inner">
+            <svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;aspect-ratio:3/4;display:block;">
+              <defs>
+                <radialGradient id="skinGrad" cx="50%" cy="40%" r="55%">
+                  <stop offset="0%" stop-color="#f0c888"/>
+                  <stop offset="70%" stop-color="#d4a460"/>
+                  <stop offset="100%" stop-color="#b8864a"/>
+                </radialGradient>
+                <radialGradient id="bgGrad" cx="50%" cy="30%" r="70%">
+                  <stop offset="0%" stop-color="#e8d5a8"/>
+                  <stop offset="60%" stop-color="#c8a870"/>
+                  <stop offset="100%" stop-color="#8c6030"/>
+                </radialGradient>
+                <radialGradient id="eyeShine" cx="35%" cy="35%" r="40%">
+                  <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+                  <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+                </radialGradient>
+                <filter id="softBlur">
+                  <feGaussianBlur stdDeviation="0.8"/>
+                </filter>
+              </defs>
+              <!-- Silk background - warm ochre tones -->
+              <rect width="300" height="400" fill="url(#bgGrad)"/>
+              <!-- Subtle silk texture lines -->
+              <line x1="0" y1="60" x2="300" y2="60" stroke="#c0923a" stroke-width="0.5" opacity="0.3"/>
+              <line x1="0" y1="120" x2="300" y2="120" stroke="#c0923a" stroke-width="0.5" opacity="0.3"/>
+              <line x1="0" y1="180" x2="300" y2="180" stroke="#c0923a" stroke-width="0.5" opacity="0.3"/>
+              <line x1="0" y1="240" x2="300" y2="240" stroke="#c0923a" stroke-width="0.5" opacity="0.3"/>
+              <line x1="0" y1="300" x2="300" y2="300" stroke="#c0923a" stroke-width="0.5" opacity="0.3"/>
+              <line x1="0" y1="360" x2="300" y2="360" stroke="#c0923a" stroke-width="0.5" opacity="0.3"/>
+              <!-- Body / clothing - áo dài dark -->
+              <path d="M80,280 Q90,240 100,220 Q120,210 150,210 Q180,210 200,220 Q210,240 220,280 L235,400 L65,400 Z" fill="#2a1a0a"/>
+              <!-- Collar detail -->
+              <path d="M115,215 Q150,205 185,215 Q170,230 150,228 Q130,230 115,215Z" fill="#3a2a10" stroke="#c8a060" stroke-width="0.8"/>
+              <!-- Neck -->
+              <rect x="133" y="195" width="34" height="28" rx="6" fill="url(#skinGrad)"/>
+              <!-- Head shape - slightly oval, youthful -->
+              <ellipse cx="150" cy="155" rx="65" ry="72" fill="url(#skinGrad)"/>
+              <!-- Cheeks blush -->
+              <ellipse cx="110" cy="168" rx="18" ry="12" fill="#e0906a" opacity="0.22" filter="url(#softBlur)"/>
+              <ellipse cx="190" cy="168" rx="18" ry="12" fill="#e0906a" opacity="0.22" filter="url(#softBlur)"/>
+              <!-- Hair - black, swept back, typical 1940s Vietnamese style -->
+              <ellipse cx="150" cy="100" rx="68" ry="40" fill="#1a0e06"/>
+              <!-- Hair top sweep -->
+              <path d="M82,120 Q90,80 150,75 Q210,80 218,120 Q195,95 150,90 Q105,95 82,120Z" fill="#1a0e06"/>
+              <!-- Side hair strands -->
+              <path d="M85,130 Q78,155 82,175 Q88,140 90,128Z" fill="#1a0e06"/>
+              <path d="M215,130 Q222,155 218,175 Q212,140 210,128Z" fill="#1a0e06"/>
+              <!-- Hair parting line - subtle -->
+              <path d="M148,80 Q150,110 150,130" stroke="#2a1808" stroke-width="1.5" fill="none" opacity="0.5"/>
+              <!-- Forehead - smooth -->
+              <!-- Eyebrows - thin, elegant -->
+              <path d="M112,132 Q125,127 140,130" stroke="#2a1808" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+              <path d="M160,130 Q175,127 188,132" stroke="#2a1808" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+              <!-- Eyes - almond shaped, the defining feature of Em Thúy -->
+              <!-- Left eye -->
+              <path d="M108,148 Q120,140 138,148 Q125,158 108,148Z" fill="#f5e0b0"/>
+              <ellipse cx="123" cy="149" rx="9" ry="8" fill="#2a1808"/>
+              <ellipse cx="123" cy="149" rx="6" ry="6" fill="#1a0e04"/>
+              <ellipse cx="123" cy="149" rx="3.5" ry="3.5" fill="#0a0604"/>
+              <ellipse cx="121" cy="147" rx="2" ry="1.5" fill="url(#eyeShine)"/>
+              <!-- Left eye lashes -->
+              <path d="M108,148 Q113,143 120,143" stroke="#1a0e06" stroke-width="1.5" fill="none"/>
+              <path d="M138,148 Q133,143 127,143" stroke="#1a0e06" stroke-width="1.5" fill="none"/>
+              <!-- Right eye -->
+              <path d="M162,148 Q180,140 192,148 Q180,158 162,148Z" fill="#f5e0b0"/>
+              <ellipse cx="177" cy="149" rx="9" ry="8" fill="#2a1808"/>
+              <ellipse cx="177" cy="149" rx="6" ry="6" fill="#1a0e04"/>
+              <ellipse cx="177" cy="149" rx="3.5" ry="3.5" fill="#0a0604"/>
+              <ellipse cx="175" cy="147" rx="2" ry="1.5" fill="url(#eyeShine)"/>
+              <!-- Right eye lashes -->
+              <path d="M162,148 Q167,143 174,143" stroke="#1a0e06" stroke-width="1.5" fill="none"/>
+              <path d="M192,148 Q187,143 181,143" stroke="#1a0e06" stroke-width="1.5" fill="none"/>
+              <!-- Nose - subtle, delicate -->
+              <path d="M147,158 Q150,175 153,158" stroke="#c09060" stroke-width="1.2" fill="none" opacity="0.5"/>
+              <path d="M140,175 Q150,180 160,175" stroke="#c09060" stroke-width="1.2" fill="none" opacity="0.4"/>
+              <!-- Nostrils -->
+              <ellipse cx="144" cy="176" rx="4" ry="2.5" fill="#b07850" opacity="0.35"/>
+              <ellipse cx="156" cy="176" rx="4" ry="2.5" fill="#b07850" opacity="0.35"/>
+              <!-- Mouth - small, closed, serene -->
+              <path d="M133,192 Q142,187 150,188 Q158,187 167,192" stroke="#c07858" stroke-width="1.5" fill="none"/>
+              <path d="M133,192 Q141,198 150,199 Q159,198 167,192" fill="#c87860" opacity="0.7"/>
+              <!-- Ear left -->
+              <ellipse cx="86" cy="158" rx="10" ry="14" fill="#d4a460"/>
+              <ellipse cx="88" cy="158" rx="6" ry="10" fill="#c8944a"/>
+              <!-- Ear right -->
+              <ellipse cx="214" cy="158" rx="10" ry="14" fill="#d4a460"/>
+              <ellipse cx="212" cy="158" rx="6" ry="10" fill="#c8944a"/>
+              <!-- Simple earrings -->
+              <circle cx="86" cy="172" r="3" fill="#c8a030" opacity="0.8"/>
+              <circle cx="214" cy="172" r="3" fill="#c8a030" opacity="0.8"/>
+              <!-- Lighting - soft warm light from upper left -->
+              <ellipse cx="100" cy="120" rx="80" ry="80" fill="#ffe0a0" opacity="0.08"/>
+              <!-- Vignette shadow around edges -->
+              <rect width="300" height="400" fill="none" stroke="#4a2808" stroke-width="0" opacity="0"/>
+              <path d="M0,0 L300,0 L300,400 L0,400 Z" fill="none"/>
+              <!-- Soft edge shadow -->
+              <ellipse cx="150" cy="200" rx="160" ry="220" fill="none" stroke="#4a2808" stroke-width="60" opacity="0.15"/>
+            </svg>
+          </div>
+        </div>
+        <div class="painting-label">
+          <div class="artwork-name">Em Thúy</div>
+          <div class="placard-line"></div>
+          <div class="artist-name">Trần Văn Cẩn · 1943</div>
+          <div class="artwork-desc">Đôi mắt trong veo của cô bé Thúy nhìn thẳng vào ta — bức chân dung thiếu nhi tinh tế nhất trong nền hội họa Việt Nam hiện đại.</div>
+        </div>
       </div>
-      <div class="finger-chip" id="fc-middle">
-        <div class="fc-dot"></div>
-        <span class="fc-name">Middle</span>
-        <span class="fc-val" id="fv-middle">--</span>
-      </div>
-      <div class="finger-chip" id="fc-ring">
-        <div class="fc-dot"></div>
-        <span class="fc-name">Ring</span>
-        <span class="fc-val" id="fv-ring">--</span>
-      </div>
-      <div class="finger-chip" id="fc-pinky">
-        <div class="fc-dot"></div>
-        <span class="fc-name">Pinky</span>
-        <span class="fc-val" id="fv-pinky">--</span>
-      </div>
-      <div class="finger-chip" id="fc-wrist">
-        <div class="fc-dot"></div>
-        <span class="fc-name">Palm</span>
-        <span class="fc-val" id="fv-wrist">--</span>
-      </div>
+
+
     </div>
+  </section>
 
-    <!-- AI feedback log -->
-    <div id="feedback-log">
-      <div id="fb-empty">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-          <path d="M9 9h6M9 13h4"/>
-          <rect x="3" y="3" width="18" height="14" rx="2"/>
-          <path d="M3 21l3-4h15"/>
-        </svg>
-        <span>AI feedback will appear here</span>
-      </div>
+  <!-- =====================================================
+       REFLECTION — GÓC SUY NGẪM
+  ====================================================== -->
+  <!-- Reflection Section -->
+  <section id="reflection">
+    <div class="quote-container reveal">
+      <span class="quote-mark">&ldquo;</span>
+      <p class="quote-text">
+        Nghệ thuật là lời thì thầm của linh hồn — không cần dịch, không cần giải thích.
+        Bạn cảm thấy nó, hoặc bạn không. Và khi cảm thấy, bạn sẽ không bao giờ quên.
+      </p>
+      <p class="quote-attribution">— Bảo Tàng Cảm Xúc &nbsp; ✦ &nbsp; Góc Suy Ngẫm</p>
     </div>
+  </section>
 
-    <!-- Voice toggle -->
-    <div id="voice-row">
-      <span id="voice-label">Voice Feedback</span>
-      <div class="toggle-wrap">
-        <label class="toggle">
-          <input type="checkbox" id="voice-toggle" checked>
-          <span class="toggle-slider"></span>
-        </label>
-        <span class="toggle-text" id="voice-status">On</span>
+  <!-- =====================================================
+       FEEDBACK SECTION — ĐÁNH GIÁ TRẢI NGHIỆM
+  ====================================================== -->
+  <!-- Feedback Section -->
+  <section id="feedback">
+    <div class="feedback-inner">
+
+      <div class="feedback-header">
+        <p class="feedback-label reveal">◆ &nbsp; Sổ lưu niệm &nbsp; ◆</p>
+        <h2 class="feedback-title reveal reveal-delay-1">Chia Sẻ Cảm Nhận Của Bạn</h2>
+        <p class="feedback-subtitle reveal reveal-delay-2">Chuyến tham quan của bạn để lại dấu ấn gì? Chúng tôi lắng nghe.</p>
       </div>
+
+      <div class="ornament reveal reveal-delay-2">
+        <span>✦ ✦ ✦</span>
+      </div>
+
+      <form class="feedback-form reveal reveal-delay-3" id="feedback-form" onsubmit="handleSubmit(event)">
+
+        <!-- Textarea -->
+        <div class="form-group">
+          <label class="form-label" for="review-text">Nhận xét ngắn gọn về chuyến tham quan bảo tàng này</label>
+          <textarea
+            id="review-text"
+            name="review"
+            class="form-textarea"
+            placeholder="Chia sẻ cảm xúc, ấn tượng hoặc suy nghĩ của bạn sau chuyến tham quan hôm nay…"
+            rows="5"
+          ></textarea>
+        </div>
+
+        <!-- Rating 7–10 -->
+        <div class="form-group">
+          <label class="form-label">Rating thang 7 đến 10</label>
+          <div class="rating-group" role="group" aria-label="Chọn điểm đánh giá">
+            <button type="button" class="rating-btn" data-value="7" onclick="selectRating(this)" aria-label="Điểm 7">
+              <span class="num">7</span>
+              <span class="star">✦</span>
+            </button>
+            <button type="button" class="rating-btn" data-value="8" onclick="selectRating(this)" aria-label="Điểm 8">
+              <span class="num">8</span>
+              <span class="star">✦</span>
+            </button>
+            <button type="button" class="rating-btn" data-value="9" onclick="selectRating(this)" aria-label="Điểm 9">
+              <span class="num">9</span>
+              <span class="star">✦</span>
+            </button>
+            <button type="button" class="rating-btn" data-value="10" onclick="selectRating(this)" aria-label="Điểm 10">
+              <span class="num">10</span>
+              <span class="star">✦</span>
+            </button>
+          </div>
+          <input type="hidden" id="rating-value" name="rating" value="" />
+        </div>
+
+        <button type="submit" class="btn-submit">Gửi đánh giá &nbsp; ◆</button>
+
+      </form>
+
+      <!-- Success message -->
+      <div class="success-msg" id="success-msg">
+        <p>✦ &nbsp; <span class="gold">Cảm ơn bạn đã dành thời gian.</span></p>
+        <p style="margin-top:0.6rem; font-size:0.95rem; opacity:0.7;">
+          Cảm nhận của bạn là một phần của bảo tàng này.
+        </p>
+      </div>
+
     </div>
+  </section>
 
-  </div><!-- /feedback-panel -->
-</div><!-- /main -->
+  <!-- ===================== FOOTER ===================== -->
+  <footer>
+    <div class="footer-logo">Bảo Tàng Cảm Xúc</div>
+    <p class="footer-closing">
+      Cảm ơn bạn đã bước vào đây.<br>
+      Nghệ thuật tốt nhất là loại nghệ thuật khiến bạn muốn trở lại — <em>thêm một lần nữa.</em>
+    </p>
+    <div class="footer-ornament">◆ &nbsp; ◆ &nbsp; ◆</div>
+  </footer>
 
-<script>
-// ============================================================
-//  SignSpace AI Coach — MediaPipe Hands + Euclidean Gesture
-//  No backend, no framework, pure HTML/CSS/JS
-// ============================================================
+  <!-- ===================== JAVASCRIPT ===================== -->
+  <script>
+    // ── Painting image fallbacks ──
+    const paintingFallbacks = {
+      'Sunflowers — Van Gogh': `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;aspect-ratio:3/4;display:block;">
+        <defs>
+          <linearGradient id="bgSF" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c8a020"/><stop offset="100%" stop-color="#7a5808"/></linearGradient>
+          <radialGradient id="flowerSF" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f0b820"/><stop offset="60%" stop-color="#e09010"/><stop offset="100%" stop-color="#c07008"/></radialGradient>
+        </defs>
+        <rect width="300" height="400" fill="url(#bgSF)"/>
+        <rect width="300" height="400" fill="#d4a018" opacity="0.4"/>
+        ${[{cx:90,cy:90,r:38},{cx:210,cy:100,r:32},{cx:150,cy:180,r:42},{cx:60,cy:250,r:28},{cx:240,cy:240,r:34}].map(f=>`
+          <circle cx="${f.cx}" cy="${f.cy}" r="${f.r+4}" fill="#c87808" opacity="0.3"/>
+          ${[-1,0,1].map(i=>`
+            <ellipse cx="${f.cx}" cy="${f.cy-f.r-5}" rx="${f.r*0.28}" ry="${f.r*0.4}" fill="#f5c030" opacity="0.9" transform="rotate(${i*40} ${f.cx} ${f.cy})"/>
+            <ellipse cx="${f.cx}" cy="${f.cy-f.r-5}" rx="${f.r*0.28}" ry="${f.r*0.4}" fill="#f5c030" opacity="0.9" transform="rotate(${i*40+90} ${f.cx} ${f.cy})"/>
+          `).join('')}
+          <circle cx="${f.cx}" cy="${f.cy}" r="${f.r*0.45}" fill="#4a2800"/>
+          <circle cx="${f.cx}" cy="${f.cy}" r="${f.r*0.32}" fill="#3a1e00"/>
+        `).join('')}
+        <line x1="90" y1="128" x2="85" y2="400" stroke="#3a6810" stroke-width="6"/>
+        <line x1="210" y1="132" x2="215" y2="400" stroke="#3a6810" stroke-width="5"/>
+        <line x1="150" y1="222" x2="148" y2="400" stroke="#3a6810" stroke-width="7"/>
+        <rect x="40" y="370" width="220" height="30" fill="#5a3808" opacity="0.6" rx="2"/>
+      </svg>`,
+      'The Starry Night — Van Gogh': `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;aspect-ratio:3/4;display:block;">
+        <defs>
+          <radialGradient id="starGR" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff8a0"/><stop offset="50%" stop-color="#f0c820" stop-opacity="0.8"/><stop offset="100%" stop-color="#e09000" stop-opacity="0"/></radialGradient>
+          <linearGradient id="skyGR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#050828"/><stop offset="60%" stop-color="#0c1458"/><stop offset="100%" stop-color="#1a2070"/></linearGradient>
+        </defs>
+        <rect width="300" height="400" fill="url(#skyGR)"/>
+        <path d="M0,60 Q30,40 60,55 Q90,38 120,52 Q150,35 180,50 Q210,33 240,48 Q270,32 300,46 Q270,55 240,62 Q210,48 180,63 Q150,46 120,61 Q90,47 60,64 Q30,50 0,65Z" fill="#2038b0" opacity="0.3"/>
+        <path d="M0,90 Q40,72 80,85 Q120,68 160,82 Q200,65 240,79 Q270,65 300,76 Q270,85 240,90 Q200,78 160,94 Q120,78 80,95 Q40,82 0,98Z" fill="#1830a0" opacity="0.25"/>
+        <ellipse cx="60" cy="80" rx="28" ry="28" fill="url(#starGR)" opacity="0.9"/>
+        <circle cx="60" cy="80" r="14" fill="#fff8c0"/>
+        <ellipse cx="200" cy="55" rx="20" ry="20" fill="url(#starGR)" opacity="0.8"/>
+        <circle cx="200" cy="55" r="10" fill="#fff8c0"/>
+        <ellipse cx="255" cy="95" rx="12" ry="12" fill="url(#starGR)" opacity="0.65"/>
+        <circle cx="255" cy="95" r="6" fill="#ffeea0"/>
+        ${[[30,140,4],[90,125,3],[160,85,3.5],[265,145,4],[220,175,3]].map(s=>`<circle cx="${s[0]}" cy="${s[1]}" r="${s[2]}" fill="#e8d870" opacity="0.55"/>`).join('')}
+        <path d="M130,100 Q136,50 140,20 Q144,50 148,100 Q152,140 148,185 Q144,140 140,100Z" fill="#162816" opacity="0.95"/>
+        <path d="M136,20 Q140,0 144,20 Q147,45 144,85 Q141,45 136,20Z" fill="#204020" opacity="0.9"/>
+        <path d="M0,260 Q50,230 100,250 Q150,225 200,245 Q250,220 300,240 L300,400 L0,400Z" fill="#0a1808"/>
+        <path d="M0,285 Q60,268 120,278 Q180,262 240,272 Q270,265 300,272 L300,400 L0,400Z" fill="#081408"/>
+        <rect x="220" y="290" width="28" height="55" fill="#2a2010"/><rect x="228" y="300" width="7" height="7" fill="#f0d058" opacity="0.7"/><rect x="238" y="300" width="7" height="7" fill="#f0d058" opacity="0.5"/>
+      </svg>`,
+      'Impression, Sunrise — Monet': `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;aspect-ratio:3/4;display:block;">
+        <defs>
+          <linearGradient id="skyIM" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4a6080"/><stop offset="40%" stop-color="#7090a8"/><stop offset="100%" stop-color="#8090a0"/></linearGradient>
+          <radialGradient id="sunIM" cx="45%" cy="55%" r="40%"><stop offset="0%" stop-color="#ff8020"/><stop offset="30%" stop-color="#ff6010" stop-opacity="0.9"/><stop offset="100%" stop-color="#e04000" stop-opacity="0"/></radialGradient>
+          <linearGradient id="waterIM" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5a7090"/><stop offset="100%" stop-color="#3a5070"/></linearGradient>
+        </defs>
+        <rect width="300" height="400" fill="url(#skyIM)"/>
+        <ellipse cx="120" cy="160" rx="55" ry="55" fill="url(#sunIM)"/>
+        <circle cx="120" cy="160" r="22" fill="#ff9030"/>
+        <circle cx="120" cy="160" r="15" fill="#ffb050"/>
+        <rect x="0" y="220" width="300" height="180" fill="url(#waterIM)"/>
+        <path d="M80,220 Q115,200 120,220 Q105,210 80,220Z" fill="#ff7020" opacity="0.7"/>
+        <path d="M95,235 Q120,218 125,235 Q110,225 95,235Z" fill="#ff6018" opacity="0.6"/>
+        <path d="M105,252 Q125,238 130,252 Q118,242 105,252Z" fill="#e05010" opacity="0.5"/>
+        <path d="M0,230 Q40,220 80,230 Q120,218 160,230 Q200,220 240,230 Q270,222 300,230" stroke="#6a8898" stroke-width="2.5" fill="none" opacity="0.6"/>
+        <path d="M0,250 Q50,240 100,250 Q150,238 200,250 Q250,240 300,250" stroke="#607888" stroke-width="2" fill="none" opacity="0.5"/>
+        <path d="M0,270 Q60,260 120,270 Q180,258 240,270 Q270,262 300,268" stroke="#587080" stroke-width="2" fill="none" opacity="0.4"/>
+        ${[[40,240],[180,235],[260,245]].map(b=>`<path d="M${b[0]},${b[1]} Q${b[0]+8},${b[1]-8} ${b[0]+16},${b[1]}" stroke="#304050" stroke-width="2" fill="none" opacity="0.7"/>`).join('')}
+        <path d="M0,340 L30,220 L38,220 L10,340Z" fill="#2a3040" opacity="0.6"/>
+        <path d="M270,355 L285,215 L292,216 L278,355Z" fill="#2a3040" opacity="0.5"/>
+        <rect x="0" y="360" width="300" height="40" fill="#304858" opacity="0.5"/>
+      </svg>`,
+      'Water Lilies — Monet': `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;aspect-ratio:3/4;display:block;">
+        <defs>
+          <linearGradient id="pondWL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3a5868"/><stop offset="40%" stop-color="#2a4858"/><stop offset="100%" stop-color="#1a3848"/></linearGradient>
+          <radialGradient id="lilyWL" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f5f0e0"/><stop offset="60%" stop-color="#e8e0c8"/><stop offset="100%" stop-color="#d8c8a0"/></radialGradient>
+          <radialGradient id="pinkWL" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f8c0d0"/><stop offset="70%" stop-color="#e8a0b8"/><stop offset="100%" stop-color="#d08098"/></radialGradient>
+        </defs>
+        <rect width="300" height="400" fill="url(#pondWL)"/>
+        <path d="M0,0 Q150,80 300,0 Q280,60 300,120 Q200,80 150,120 Q100,80 0,120Z" fill="#4a7080" opacity="0.5"/>
+        ${[[0,60,300,60],[0,100,300,100],[0,140,300,140],[0,200,300,200],[0,280,300,280]].map(l=>`<path d="M${l[0]},${l[1]} Q${(l[0]+l[2])/2},${l[1]-15} ${l[2]},${l[3]}" stroke="#507888" stroke-width="1.5" fill="none" opacity="0.3"/>`).join('')}
+        ${[[70,200],[190,240],[130,320],[240,180],[50,320],[220,350]].map(p=>`
+          <ellipse cx="${p[0]}" cy="${p[1]}" rx="28" ry="16" fill="#2a5020" opacity="0.75"/>
+          <path d="M${p[0]},${p[1]} L${p[0]+28},${p[1]}" stroke="#1e3e18" stroke-width="1" fill="none" opacity="0.4"/>
+        `).join('')}
+        ${[[90,190],[170,230],[110,305],[230,170],[80,340]].map(f=>`
+          <ellipse cx="${f[0]}" cy="${f[1]}" rx="16" ry="10" fill="url(#lilyWL)" opacity="0.9"/>
+          ${[0,45,90,135,180,225,270,315].map(a=>`<ellipse cx="${f[0]}" cy="${f[1]}" rx="8" ry="5" fill="#f0ece0" opacity="0.75" transform="rotate(${a} ${f[0]} ${f[1]})"/>`).join('')}
+          <circle cx="${f[0]}" cy="${f[1]}" r="4" fill="#f8d850" opacity="0.8"/>
+        `).join('')}
+        <ellipse cx="195" cy="290" rx="14" ry="8" fill="url(#pinkWL)" opacity="0.9"/>
+        ${[0,60,120,180,240,300].map(a=>`<ellipse cx="195" cy="290" rx="7" ry="4" fill="#f0a0c0" opacity="0.7" transform="rotate(${a} 195 290)"/>`).join('')}
+        <circle cx="195" cy="290" r="3.5" fill="#f8c830" opacity="0.8"/>
+        <path d="M0,390 Q80,370 160,385 Q220,365 300,380 L300,400 L0,400Z" fill="#1a3028" opacity="0.6"/>
+      </svg>`,
+      'Thiếu nữ bên hoa huệ — Tô Ngọc Vân': `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;aspect-ratio:3/4;display:block;">
+        <defs>
+          <radialGradient id="bgTNV" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#e8d8b8"/><stop offset="60%" stop-color="#c8a870"/><stop offset="100%" stop-color="#8c6030"/></radialGradient>
+          <radialGradient id="skinTNV" cx="50%" cy="40%" r="55%"><stop offset="0%" stop-color="#f0c890"/><stop offset="70%" stop-color="#d4a060"/><stop offset="100%" stop-color="#b88040"/></radialGradient>
+          <linearGradient id="aodaiTNV" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f0ece8"/><stop offset="50%" stop-color="#e8e0d8"/><stop offset="100%" stop-color="#d8cec8"/></linearGradient>
+        </defs>
+        <rect width="300" height="400" fill="url(#bgTNV)"/>
+        <path d="M85,310 Q100,260 115,235 Q135,220 150,218 Q165,220 185,235 Q200,260 215,310 L228,400 L72,400Z" fill="url(#aodaiTNV)"/>
+        <path d="M118,225 Q150,215 182,225 Q168,240 150,238 Q132,240 118,225Z" fill="#e0d8d0" opacity="0.9"/>
+        <rect x="133" y="205" width="34" height="25" rx="6" fill="url(#skinTNV)"/>
+        <ellipse cx="150" cy="160" rx="58" ry="65" fill="url(#skinTNV)"/>
+        <ellipse cx="118" cy="172" rx="16" ry="11" fill="#e08870" opacity="0.18"/>
+        <ellipse cx="182" cy="172" rx="16" ry="11" fill="#e08870" opacity="0.18"/>
+        <ellipse cx="150" cy="108" rx="62" ry="38" fill="#180e06"/>
+        <path d="M88,125 Q95,88 150,82 Q205,88 212,125 Q192,100 150,96 Q108,100 88,125Z" fill="#180e06"/>
+        <path d="M113,138 Q124,132 136,135" stroke="#2a1808" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M164,135 Q176,132 187,138" stroke="#2a1808" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M110,152 Q122,143 136,152 Q123,162 110,152Z" fill="#f0d0a0"/>
+        <ellipse cx="123" cy="153" rx="7" ry="6" fill="#1e0e04"/>
+        <ellipse cx="121" cy="151" rx="2" ry="1.5" fill="white" opacity="0.4"/>
+        <path d="M164,152 Q178,143 190,152 Q177,162 164,152Z" fill="#f0d0a0"/>
+        <ellipse cx="177" cy="153" rx="7" ry="6" fill="#1e0e04"/>
+        <ellipse cx="175" cy="151" rx="2" ry="1.5" fill="white" opacity="0.4"/>
+        <path d="M140,192 Q150,197 160,192" stroke="#c07858" stroke-width="1.8" fill="none"/>
+        <path d="M240,220 Q245,180 250,150 Q255,180 258,220 Q255,260 250,300 Q245,260 240,220Z" fill="#f8f8f8" opacity="0.85"/>
+        <ellipse cx="250" cy="148" rx="18" ry="22" fill="#f8f8f8" opacity="0.9"/>
+        <circle cx="250" cy="136" r="6" fill="#f5e058" opacity="0.8"/>
+        <path d="M245,200 Q248,260 252,320" stroke="#7a9820" stroke-width="3" fill="none"/>
+        <ellipse cx="270" cy="280" rx="14" ry="20" fill="#f8f8f8" opacity="0.8"/>
+        <circle cx="270" cy="266" r="5" fill="#f5e058" opacity="0.8"/>
+      </svg>`
+    };
 
-// ── Voice feedback (Web Speech API) ─────────────────────────
-var voiceEnabled = true;
-var isSpeaking   = false;
-var lastSpokenMsg = '';
-
-document.getElementById('voice-toggle').addEventListener('change', function() {
-  voiceEnabled = this.checked;
-  document.getElementById('voice-status').textContent = this.checked ? 'On' : 'Off';
-});
-
-function speak(text) {
-  if (!voiceEnabled || !window.speechSynthesis) return;
-  if (text === lastSpokenMsg && isSpeaking) return;
-  window.speechSynthesis.cancel();
-  lastSpokenMsg = text;
-  isSpeaking    = true;
-  var utt = new SpeechSynthesisUtterance(text);
-  utt.rate   = 0.95;
-  utt.pitch  = 1.0;
-  utt.volume = 0.85;
-  utt.onend  = function() { isSpeaking = false; };
-  setTimeout(function() { window.speechSynthesis.speak(utt); }, 50);
-}
-
-// ── Gesture database ─────────────────────────────────────────
-// Feature vector = [thumbCurl, indexCurl, middleCurl, ringCurl, pinkyCurl, thumbSpread]
-// Curl  = 1 means fully straight, 0 means fully curled
-// thumbSpread = lateral distance of thumb from palm
-//
-// These are reference vectors derived from actual ASL/common gestures.
-
-var GESTURES = {
-  hello: {
-    name: 'Hello',
-    emoji: '👋',
-    hint: 'Open your hand wide and wave! All 5 fingers pointing up, palm facing the camera.',
-    template: [0.85, 0.95, 0.95, 0.95, 0.95, 0.80],
-    checks: {
-      index:  { min: 0.75, msg: 'Straighten your index finger all the way up' },
-      middle: { min: 0.75, msg: 'Middle finger needs to point straight up' },
-      ring:   { min: 0.70, msg: 'Ring finger should be fully open' },
-      pinky:  { min: 0.70, msg: 'Pinky finger needs to be extended too' }
-    }
-  },
-
-  thankyou: {
-    name: 'Thank You',
-    emoji: '🙏',
-    hint: 'Hold your flat hand near your chin, fingers pointing up. Move it forward gently — like blowing a kiss of thanks!',
-    template: [0.80, 0.90, 0.90, 0.88, 0.85, 0.40],
-    checks: {
-      index:  { min: 0.72, msg: 'Keep all fingers flat and straight' },
-      middle: { min: 0.72, msg: 'Middle finger should point upward' },
-      thumb:  { max: 0.60, msg: 'Tuck your thumb alongside your hand' }
-    }
-  },
-
-  sorry: {
-    name: 'Sorry',
-    emoji: '😔',
-    hint: 'Make a fist and gently rub it in a circle on your chest — like you are rubbing away a mistake.',
-    template: [0.25, 0.15, 0.15, 0.15, 0.15, 0.20],
-    checks: {
-      index:  { max: 0.40, msg: 'Curl your index finger into your fist' },
-      middle: { max: 0.40, msg: 'Middle finger needs to curl in more' },
-      ring:   { max: 0.40, msg: 'Curl your ring finger too' },
-      pinky:  { max: 0.40, msg: 'Pinky finger needs to curl in as well' }
-    }
-  },
-
-  yes: {
-    name: 'Yes',
-    emoji: '✅',
-    hint: 'Make a fist and nod it up and down — just like your hand is saying "yes" by nodding!',
-    template: [0.20, 0.12, 0.12, 0.12, 0.12, 0.15],
-    checks: {
-      index:  { max: 0.35, msg: 'Close your fingers tighter into a fist' },
-      middle: { max: 0.35, msg: 'Middle finger needs to curl in more' },
-      thumb:  { max: 0.35, msg: 'Wrap your thumb over your fingers' }
-    }
-  },
-
-  no: {
-    name: 'No',
-    emoji: '❌',
-    hint: 'Hold up your index and middle fingers together, then tap them down to meet your thumb — like a beak saying "no no no!"',
-    template: [0.70, 0.85, 0.80, 0.15, 0.15, 0.65],
-    checks: {
-      index:  { min: 0.70, msg: 'Point your index finger up more' },
-      middle: { min: 0.65, msg: 'Middle finger should be straight up too' },
-      ring:   { max: 0.40, msg: 'Fold your ring finger down' },
-      pinky:  { max: 0.40, msg: 'Tuck your pinky finger in' }
-    }
-  },
-
-  help: {
-    name: 'Help',
-    emoji: '🆘',
-    hint: 'Make a thumbs-up, then place it on your other open palm and lift both hands up together — like someone is giving you a boost!',
-    template: [0.90, 0.15, 0.15, 0.15, 0.15, 0.50],
-    checks: {
-      thumb:  { min: 0.72, msg: 'Point your thumb up higher' },
-      index:  { max: 0.40, msg: 'Curl your index finger down' },
-      middle: { max: 0.40, msg: 'Middle finger should be curled in' },
-      ring:   { max: 0.40, msg: 'Keep your ring finger curled down' }
-    }
-  },
-
-  please: {
-    name: 'Please',
-    emoji: '🤲',
-    hint: 'Put your flat open hand on your chest and rub in a circle — like you are politely asking for something.',
-    template: [0.75, 0.88, 0.88, 0.88, 0.85, 0.35],
-    checks: {
-      index:  { min: 0.70, msg: 'Flatten and straighten your fingers' },
-      middle: { min: 0.70, msg: 'Middle finger should be straight' },
-      thumb:  { max: 0.55, msg: 'Keep your thumb resting alongside your hand' }
-    }
-  },
-
-  love: {
-    name: 'Love',
-    emoji: '❤️',
-    hint: 'Stick out your thumb, index finger, and pinky — fold middle and ring fingers down. It spells I-L-Y: I Love You!',
-    template: [0.88, 0.90, 0.12, 0.12, 0.88, 0.75],
-    checks: {
-      thumb:  { min: 0.72, msg: 'Stick your thumb out to the side' },
-      index:  { min: 0.72, msg: 'Point your index finger straight up' },
-      middle: { max: 0.40, msg: 'Fold your middle finger down' },
-      ring:   { max: 0.40, msg: 'Fold your ring finger down too' },
-      pinky:  { min: 0.72, msg: 'Pinky finger should be pointing up' }
-    }
-  },
-
-  good: {
-    name: 'Good',
-    emoji: '👍',
-    hint: 'Make a thumbs-up! All fingers curl into your palm, thumb points straight up. You already know this one!',
-    template: [0.92, 0.12, 0.12, 0.12, 0.12, 0.55],
-    checks: {
-      thumb:  { min: 0.75, msg: 'Point your thumb straight up higher' },
-      index:  { max: 0.38, msg: 'Curl your index finger into your palm' },
-      middle: { max: 0.38, msg: 'Middle finger needs to curl down' },
-      ring:   { max: 0.38, msg: 'Ring finger should be curled in' },
-      pinky:  { max: 0.38, msg: 'Pinky needs to curl in too' }
-    }
-  },
-
-  stop: {
-    name: 'Stop',
-    emoji: '✋',
-    hint: 'Hold your hand up flat like a crossing guard stopping traffic — fingers together, palm facing the camera.',
-    template: [0.82, 0.95, 0.95, 0.92, 0.90, 0.75],
-    checks: {
-      index:  { min: 0.78, msg: 'Straighten your index finger fully' },
-      middle: { min: 0.78, msg: 'Middle finger needs to be fully straight' },
-      ring:   { min: 0.72, msg: 'Ring finger should be extended out' },
-      pinky:  { min: 0.70, msg: 'Pinky finger needs to be straight too' },
-      thumb:  { min: 0.68, msg: 'Spread your thumb slightly away from your palm' }
-    }
-  }
-};
-
-// ── Current state ────────────────────────────────────────────
-var currentGesture = 'hello';
-var cameraRunning  = false;
-var lastFeedbackType = '';  // 'success'|'warning' — throttle speech
-var speechCooldown   = 0;
-
-// ── MediaPipe landmarks index constants ─────────────────────
-// Hand landmarks: 0=WRIST, 1-4=THUMB, 5-8=INDEX, 9-12=MIDDLE,
-// 13-16=RING, 17-20=PINKY
-var LM = {
-  WRIST:       0,
-  THUMB_CMC:   1, THUMB_MCP:  2, THUMB_IP:   3, THUMB_TIP:  4,
-  INDEX_MCP:   5, INDEX_PIP:  6, INDEX_DIP:  7, INDEX_TIP:  8,
-  MIDDLE_MCP:  9, MIDDLE_PIP:10, MIDDLE_DIP: 11,MIDDLE_TIP: 12,
-  RING_MCP:   13, RING_PIP:  14, RING_DIP:   15,RING_TIP:   16,
-  PINKY_MCP:  17, PINKY_PIP: 18, PINKY_DIP:  19,PINKY_TIP:  20
-};
-
-// ── Feature extraction ───────────────────────────────────────
-// Returns a 6-element vector: [thumbCurl, indexCurl, middleCurl, ringCurl, pinkyCurl, thumbSpread]
-// Each value normalized 0–1 (0 = fully curled, 1 = fully extended)
-
-function dist3D(a, b) {
-  var dx = a.x - b.x, dy = a.y - b.y, dz = (a.z||0) - (b.z||0);
-  return Math.sqrt(dx*dx + dy*dy + dz*dz);
-}
-
-function fingerCurl(lm, mcpIdx, pipIdx, tipIdx) {
-  // Curl = ratio of (tip-to-mcp distance) / (pip-to-mcp distance * 2)
-  // When straight: tip is far from MCP (high value ~1)
-  // When curled:   tip is close to MCP (low value ~0)
-  var mcp = lm[mcpIdx], pip = lm[pipIdx], tip = lm[tipIdx];
-  var wrist = lm[LM.WRIST];
-  // Normalise against palm size (wrist→middle-mcp distance)
-  var palmSize = dist3D(wrist, lm[LM.MIDDLE_MCP]);
-  if (palmSize < 0.001) return 0.5;
-  var tipDist = dist3D(tip, mcp);
-  // Straight: tipDist ≈ palmSize * 1.5-2.0; Curled: tipDist ≈ palmSize * 0.3-0.5
-  var norm = tipDist / (palmSize * 1.8);
-  return Math.min(1, Math.max(0, norm));
-}
-
-function thumbSpread(lm) {
-  // Lateral spread: distance from thumb tip to index MCP, normalised by palm size
-  var palmSize = dist3D(lm[LM.WRIST], lm[LM.MIDDLE_MCP]);
-  if (palmSize < 0.001) return 0.5;
-  var sp = dist3D(lm[LM.THUMB_TIP], lm[LM.INDEX_MCP]);
-  return Math.min(1, Math.max(0, sp / palmSize));
-}
-
-function extractFeatures(lm) {
-  return [
-    fingerCurl(lm, LM.THUMB_MCP,  LM.THUMB_IP,   LM.THUMB_TIP),
-    fingerCurl(lm, LM.INDEX_MCP,  LM.INDEX_PIP,  LM.INDEX_TIP),
-    fingerCurl(lm, LM.MIDDLE_MCP, LM.MIDDLE_PIP, LM.MIDDLE_TIP),
-    fingerCurl(lm, LM.RING_MCP,   LM.RING_PIP,   LM.RING_TIP),
-    fingerCurl(lm, LM.PINKY_MCP,  LM.PINKY_PIP,  LM.PINKY_TIP),
-    thumbSpread(lm)
-  ];
-}
-
-// ── Euclidean similarity ─────────────────────────────────────
-function similarity(featA, featB) {
-  var sumSq = 0;
-  for (var i = 0; i < featA.length; i++) {
-    var d = featA[i] - featB[i];
-    sumSq += d * d;
-  }
-  var dist = Math.sqrt(sumSq);
-  // Max possible distance in 6D unit cube is sqrt(6) ≈ 2.449
-  var maxDist = Math.sqrt(featA.length);
-  return Math.max(0, 1 - dist / maxDist);
-}
-
-// ── Gesture analysis + AI feedback ───────────────────────────
-function analyzeGesture(features, gestureName) {
-  var g = GESTURES[gestureName];
-  if (!g) return;
-
-  var score = similarity(features, g.template);
-  var pct   = Math.round(score * 100);
-
-  // Update score overlay
-  var scoreEl  = document.getElementById('score-num');
-  var overlay  = document.getElementById('score-overlay');
-  scoreEl.textContent = pct + '%';
-  overlay.classList.add('show');
-  scoreEl.style.color = pct >= 75 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)';
-
-  // Update similarity bar
-  var simPct  = document.getElementById('sim-pct');
-  var simFill = document.getElementById('sim-bar-fill');
-  simPct.textContent = pct + '%';
-  simFill.style.width = pct + '%';
-  simPct.className  = pct >= 75 ? 'good' : pct >= 50 ? 'close' : '';
-  simFill.className = pct >= 75 ? 'good' : pct >= 50 ? 'close' : '';
-
-  // Update finger chips
-  var names  = ['thumb','index','middle','ring','pinky','wrist'];
-  var labels = ['thumb','index','middle','ring','pinky'];
-  labels.forEach(function(n, i) {
-    var val  = features[i];
-    var chip = document.getElementById('fc-'+n);
-    var valEl= document.getElementById('fv-'+n);
-    if (!chip) return;
-    var v = Math.round(val * 100);
-    valEl.textContent = v + '%';
-    var chk = g.checks ? g.checks[n] : null;
-    chip.className = 'finger-chip';
-    if (chk) {
-      var ok = true;
-      if (chk.min !== undefined && val < chk.min) ok = false;
-      if (chk.max !== undefined && val > chk.max) ok = false;
-      chip.classList.add(ok ? 'ok' : (v > 30 ? 'warn' : 'bad'));
-    } else {
-      chip.classList.add('ok');
-    }
-  });
-
-  // Determine feedback + speech
-  var now = Date.now();
-  if (pct >= 80) {
-    // SUCCESS
-    if (lastFeedbackType !== 'success' || now - speechCooldown > 4000) {
-      addFeedback('success', '✓ ' + g.name + ' — ' + pct + '% match', 'Great job! Your hand shape matches perfectly.');
-      speak('Good job! ' + pct + ' percent match for ' + g.name + '.');
-      lastFeedbackType = 'success';
-      speechCooldown   = now;
-      // Pulse the score
-      var camPanel = document.getElementById('cam-panel');
-      camPanel.classList.remove('pulse-green');
-      void camPanel.offsetWidth;
-      camPanel.classList.add('pulse-green');
-    }
-  } else if (pct >= 55) {
-    // CLOSE — specific tip
-    if (now - speechCooldown > 3500) {
-      var tips = generateTips(features, g);
-      var tip  = tips.length > 0 ? tips[0] : 'Keep adjusting your hand position.';
-      addFeedback('warning', 'Almost — ' + pct + '%', tip);
-      speak(tip);
-      lastFeedbackType = 'warning';
-      speechCooldown   = now;
-    }
-  } else {
-    // NEED WORK
-    if (now - speechCooldown > 4500) {
-      var tips2 = generateTips(features, g);
-      if (tips2.length > 0) {
-        addFeedback('info', 'Adjust your hand — ' + pct + '%', tips2.slice(0,2).join(' '));
-        speak(tips2[0]);
-      }
-      lastFeedbackType = 'warning';
-      speechCooldown   = now;
-    }
-  }
-}
-
-// ── Generate specific correction tips ───────────────────────
-function generateTips(features, g) {
-  var tips = [];
-  if (!g.checks) return tips;
-  var featMap = { thumb:0, index:1, middle:2, ring:3, pinky:4 };
-  Object.keys(g.checks).forEach(function(finger) {
-    var chk = g.checks[finger];
-    var val = features[featMap[finger]];
-    if (val === undefined) return;
-    if (chk.min !== undefined && val < chk.min) {
-      tips.push(chk.msg);
-    }
-    if (chk.max !== undefined && val > chk.max) {
-      tips.push(chk.msg);
-    }
-  });
-  return tips;
-}
-
-// ── Feedback log ─────────────────────────────────────────────
-var feedbackCount = 0;
-
-function addFeedback(type, title, body) {
-  var log = document.getElementById('feedback-log');
-
-  // Remove empty state
-  var empty = document.getElementById('fb-empty');
-  if (empty) empty.remove();
-
-  // Cap at 6 entries
-  if (feedbackCount >= 6) {
-    var first = log.querySelector('.fb-entry');
-    if (first) first.remove();
-    feedbackCount--;
-  }
-
-  var icons = { success:'✓', warning:'⚠', info:'→' };
-  var div  = document.createElement('div');
-  div.className = 'fb-entry ' + type;
-  div.innerHTML = '<div class="fb-icon">' + icons[type] + '</div>'
-    + '<div class="fb-text"><strong>' + title + '</strong>' + body + '</div>';
-  log.appendChild(div);
-  log.scrollTop = log.scrollHeight;
-  feedbackCount++;
-}
-
-// ── UI helpers ───────────────────────────────────────────────
-function selectGesture(name) {
-  currentGesture = name;
-  var g = GESTURES[name];
-  if (!g) return;
-  document.getElementById('target-name').textContent   = g.name;
-  document.getElementById('target-emoji').textContent  = g.emoji;
-  document.getElementById('target-hint').textContent   = g.hint;
-  document.getElementById('overlay-gesture').textContent = g.name;
-  document.getElementById('select-gesture-header') && (document.getElementById('select-gesture-header').textContent = g.name);
-  // Reset feedback log
-  document.getElementById('feedback-log').innerHTML = '<div id="fb-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--muted);font-size:.70rem;letter-spacing:.10em;text-transform:uppercase;text-align:center"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M9 9h6M9 13h4"/><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M3 21l3-4h15"/></svg><span>AI feedback will appear here</span></div>';
-  feedbackCount = 0;
-  lastFeedbackType = '';
-  speechCooldown = 0;
-  // Reset chips
-  ['thumb','index','middle','ring','pinky'].forEach(function(n) {
-    var c = document.getElementById('fc-'+n);
-    if (c) c.className = 'finger-chip';
-    var v = document.getElementById('fv-'+n);
-    if (v) v.textContent = '--';
-  });
-  document.getElementById('sim-pct').textContent = '--%';
-  document.getElementById('sim-pct').className   = '';
-  document.getElementById('sim-bar-fill').style.width = '0%';
-  document.getElementById('sim-bar-fill').className   = '';
-  document.getElementById('score-num').textContent    = '—';
-  document.getElementById('score-overlay').classList.remove('show');
-}
-
-// ── MediaPipe Hands setup ────────────────────────────────────
-var hands, mpCamera;
-
-function startCamera() {
-  if (cameraRunning) return;
-
-  var videoEl  = document.getElementById('video');
-  var canvasEl = document.getElementById('output-canvas');
-  var ctx      = canvasEl.getContext('2d');
-
-  // Show canvas container
-  document.getElementById('cam-idle').style.display = 'none';
-  document.getElementById('canvas-container').classList.add('visible');
-
-  // Resize canvas to match container
-  function resizeCanvas() {
-    var wrap = document.getElementById('cam-panel');
-    canvasEl.width  = wrap.clientWidth;
-    canvasEl.height = wrap.clientHeight;
-  }
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
-
-  // Init MediaPipe Hands
-  hands = new Hands({
-    locateFile: function(file) {
-      return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + file;
-    }
-  });
-
-  hands.setOptions({
-    maxNumHands:          1,
-    modelComplexity:      1,
-    minDetectionConfidence:  0.7,
-    minTrackingConfidence:   0.6
-  });
-
-  hands.onResults(function(results) {
-    // Size canvas to video
-    var vw = videoEl.videoWidth  || canvasEl.width;
-    var vh = videoEl.videoHeight || canvasEl.height;
-    canvasEl.width  = canvasEl.offsetWidth;
-    canvasEl.height = canvasEl.offsetHeight;
-    var cw = canvasEl.width, ch = canvasEl.height;
-
-    ctx.clearRect(0, 0, cw, ch);
-
-    // Mirror-draw video frame
-    ctx.save();
-    ctx.scale(-1, 1);
-    ctx.drawImage(results.image, -cw, 0, cw, ch);
-    ctx.restore();
-
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-      var lm = results.multiHandLandmarks[0];
-
-      // Draw skeleton using MediaPipe drawing utils
-      drawConnectors(ctx, lm, HAND_CONNECTIONS, {
-        color: 'rgba(40,232,122,0.6)',
-        lineWidth: 2
+    document.querySelectorAll('.frame-inner img').forEach(img => {
+      img.addEventListener('error', function() {
+        const alt = this.alt;
+        const fallbackSvg = paintingFallbacks[alt];
+        if (fallbackSvg) {
+          this.parentNode.innerHTML = fallbackSvg;
+        } else {
+          // Generic landscape fallback
+          this.parentNode.innerHTML = `<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;aspect-ratio:3/4;display:block;">
+            <defs>
+              <linearGradient id="skyGen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6a8aaa"/><stop offset="100%" stop-color="#9ab0c8"/></linearGradient>
+              <linearGradient id="landGen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3a5820"/><stop offset="100%" stop-color="#2a4010"/></linearGradient>
+            </defs>
+            <rect width="300" height="400" fill="url(#skyGen)"/>
+            <circle cx="80" cy="100" r="35" fill="#f0d870" opacity="0.85"/>
+            <path d="M0,240 Q75,180 150,220 Q225,175 300,215 L300,400 L0,400Z" fill="url(#landGen)"/>
+            <path d="M0,270 Q60,250 120,265 Q180,245 240,260 Q270,250 300,258 L300,400 L0,400Z" fill="#2a4818"/>
+          </svg>`;
+        }
       });
-      drawLandmarks(ctx, lm, {
-        color: 'rgba(240,160,48,0.9)',
-        fillColor: 'rgba(240,160,48,0.4)',
-        lineWidth: 1,
-        radius: 4
+    });
+
+    // ── Navigation scroll effect ──
+    const nav = document.getElementById('main-nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 60);
+    });
+
+    // ── Scroll reveal ──
+    const revealEls = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
       });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
-      // Extract features + analyze
-      var features = extractFeatures(lm);
-      analyzeGesture(features, currentGesture);
+    revealEls.forEach(el => revealObserver.observe(el));
 
-    } else {
-      // No hand detected
-      // Draw subtle overlay
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.fillRect(0, 0, cw, ch);
-      ctx.fillStyle = 'rgba(120,120,140,0.8)';
-      ctx.font = '13px DM Mono, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('No hand detected — hold hand in frame', cw/2, ch/2);
-      document.getElementById('score-overlay').classList.remove('show');
+    // ── Rating selection ──
+    let selectedRating = null;
+    function selectRating(btn) {
+      document.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedRating = btn.dataset.value;
+      document.getElementById('rating-value').value = selectedRating;
     }
-  });
 
-  // MediaPipe Camera
-  mpCamera = new Camera(videoEl, {
-    onFrame: async function() {
-      await hands.send({ image: videoEl });
-    },
-    width:  1280,
-    height: 720
-  });
+    // ── Form submit ──
+    function handleSubmit(e) {
+      e.preventDefault();
+      const review = document.getElementById('review-text').value.trim();
+      // Basic validation — can be replaced with Google Form embed
+      document.getElementById('feedback-form').style.display = 'none';
+      document.getElementById('success-msg').classList.add('show');
+    }
+  </script>
 
-  mpCamera.start().then(function() {
-    cameraRunning = true;
-    var pill = document.getElementById('status-pill');
-    pill.classList.add('active');
-    document.getElementById('status-text').textContent = 'Camera Active';
-    var btn = document.getElementById('btn-start');
-    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6"/></svg> Running';
-    btn.style.borderColor = 'var(--green)';
-    btn.style.color       = 'var(--green)';
-    btn.onclick = null; // disable re-click
-    addFeedback('info', 'Camera started', 'Position your hand in the frame and try the "' + GESTURES[currentGesture].name + '" gesture.');
-    speak('Camera started. Try the ' + GESTURES[currentGesture].name + ' gesture.');
-  }).catch(function(err) {
-    addFeedback('warning', 'Camera error', err.message || 'Could not access webcam. Check browser permissions.');
-  });
-}
-
-// ── Init ─────────────────────────────────────────────────────
-selectGesture('hello');
-</script>
 </body>
 </html>
